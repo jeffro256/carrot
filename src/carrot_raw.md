@@ -312,7 +312,7 @@ The e-note components are derived from the shared secret keys <code>K<sub>d</sub
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the e-note type.
 
-### Epehemeral pubkey construction
+### Ephemeral pubkey construction
 
 The ephemeral pubkey <code>D</code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to and how many outputs there are in the transaction. Here "special" means an *internal* enote in
 a 2-out transaction. "Normal" refers to *external* enotes, or *internal* enotes in a >2-out transaction.
@@ -350,7 +350,7 @@ The purpose of `input_context` is to make <code>K<sub>d</sub><sup>ctx</sup></cod
 
 ### Janus outputs
 
-In case of a Janus attack, the recipient will derive different values of the enote epehemeral pubkey <code>D<sub>e</sub></code> and Janus `anchor`, and thus will not recognize the output.
+In case of a Janus attack, the recipient will derive different values of the enote ephemeral pubkey <code>D<sub>e</sub></code> and Janus `anchor`, and thus will not recognize the output.
 
 ### Internal enotes
 
@@ -360,7 +360,7 @@ Enotes which go to an address that belongs to the sending wallet are called "int
 
 Every transaction that spends funds from the wallet must produce at least one internal e-note, typically a change e-note. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
-### One payment, one change rule
+#### One payment, one change rule
 
 In a 2-out transaction with two internal enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
 
