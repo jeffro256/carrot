@@ -356,11 +356,17 @@ In case of a Janus attack, the recipient will derive different values of the eno
 
 Enotes which go to an address that belongs to the sending wallet are called "internal e-notes". The most common type are `"change"` e-notes, but internal "`payment"` enotes are also possible. For typical 2-output transactions, the change e-note can reuse the same value of <code>D<sub>e</sub></code> as the payment e-note.
 
-#### Mandatory change
+#### Mandatory change rule
 
 Every transaction that spends funds from the wallet must produce at least one internal e-note, typically a change e-note. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
-### Coinbase Transactions
+### One payment, one change rule
+
+In a 2-out transaction with two internal enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
+
+In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> (i.e. they are two internal addresses) in a 2-out transaction, then <code>K<sub>d</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two internal enotes to have unique derivations, then the `enote_type` needs to be unique.
+
+### Coinbase transactions
 
 Coinbase transactions are not considered to be internal.
 

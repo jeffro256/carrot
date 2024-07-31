@@ -356,17 +356,23 @@ In case of a Janus attack, the recipient will derive different values of the eno
 
 Enotes which go to an address that belongs to the sending wallet are called "internal e-notes". The most common type are `"change"` e-notes, but internal "`payment"` enotes are also possible. For typical 2-output transactions, the change e-note can reuse the same value of <code>D<sub>e</sub></code> as the payment e-note.
 
-#### 6.7.1 Mandatory change
+#### 6.7.1 Mandatory change rule
 
 Every transaction that spends funds from the wallet must produce at least one internal e-note, typically a change e-note. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
-### 6.8 Coinbase Transactions
+### 6.8 One payment, one change rule
+
+In a 2-out transaction with two internal enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
+
+In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> (i.e. they are two internal addresses) in a 2-out transaction, then <code>K<sub>d</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two internal enotes to have unique derivations, then the `enote_type` needs to be unique.
+
+### 6.9 Coinbase transactions
 
 Coinbase transactions are not considered to be internal.
 
 Miners should continue the practice of only allowing main addresses for the destinations of coinbase transactions in Carrot. This is because, unlike normal enotes, coinbase enotes do not contain an amount commitment, and thus scanning a coinbase enote commitment has no "hard target". If subaddresses can be the destinations of coinbase transactions, then the scanner *must* have their subaddress table loaded and populated to correctly scan coinbase enotes. If only main adddresses are allowed, then the scanner does not need the table and can instead simply check whether <code>K<sub>s</sub><sup>0</sup> ?= K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup></code>.
 
-### 6.9 Scanning performance
+### 6.10 Scanning performance
 
 When scanning for received enotes, legacy wallets need to calculate <code>NormalizeX(8 k<sub>v</sub> ConvertPubKey1(D<sub>e</sub>))</code>. The operation <code>ConvertPubKey1(D<sub>e</sub>)</code> can be done during point decompression for free. The `NormalizeX()` function simply drops the x coordinate. The scanning performance for legacy wallets is therefore the same as in the old protocol.
 
