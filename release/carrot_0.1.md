@@ -239,7 +239,7 @@ Where address private key <code>k<sub>a</sub><sup>j</sup></code> are defined as 
 |<code>k<sub>a</sub><sup>j</sup></code> | address private key  | <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code> |
 | <code>s<sub>gen</sub><sup>j</sup></code> | address index generators | <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("jamtis_address_index_generator" \|\| s<sub>ga</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code> |
 
-The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub> and  <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>.
+The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>.
 
 #### 5.1.4 Integrated Addresses
 
