@@ -8,7 +8,7 @@ Carrot (Cryptonote Address on Rerandomizable-RingCT-Output Transactions) is an a
 
 Cryptonote addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity. In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs*, an arbitary 8 byte string attached to transactions, was the inital solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses. Wallets then started encrypting the payment IDs on-chain, and adding dummys if no payment IDs were used, which greatly improved privacy. In 2016, Monero [iterated](https://github.com/monero-project/research-lab/issues/7) even further by introducing *subaddresses*, an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
 
-### FCMP++ / Rerandomizable RingCT
+### FCMP++
 
 To tackle privacy shortcomings with ring signatures, there is a consensus protocol update planned for Monero called FCMP++, which allows for an "anonymity set" of the entire chain. This protocol leverages a primitive for set membership called *Curve Trees*. Curve Trees allows one to efficiently prove that a "rerandomized" curve point exists in some set without revealing the element. In Monero, this set is defined as all "spendable" (i.e. unlocked and valid) transaction outputs on-chain. This randomization transformation is similar to "blinding" coin amounts in Pederson Commitments, and as a side effect, transaction output public keys *themselves* can be rerandomized on-chain. This fact opens the door for addressing protocols to add long-desired features, namely forward secrecy and outgoing view keys.
 
@@ -106,6 +106,18 @@ We define two functions that can transform public keys between the two curves:
 The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the ed25519 y-coordinate and `u` is the X25519 x-coordinate. Notice that the x-coordinates of ed25519 points and the y-coordinates of X25519 points are not considered.
 
 Additionally, we define the function `NormalizeX(K)` that takes an Ed25519 point `K` and returns `K` if its `x` coordinate is even or `-K` if its `x` coordinate is odd.
+
+## Rerandomizable RingCT abstraction
+
+Here we formally define an abstraction of the FCMP++ consensus layer called *Randomizable RingCT* which lays out the requirements that Carrot needs. All elliptic curve arithmetic occurs on ed25519.
+
+### Creating a transaction output
+
+Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create this transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 <= a <= 2<sup>64</sup></code>. *Coinbase* transactions are slightly different in that `a` is stored publicly instead of <code>C<sub>a</sub></code>, and it is implied that <code>C<sub>a</sub> = G + a H</code>.
+
+### Spending a transaction output
+
+To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 <= a <= 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA "linking tag" or "nullifier") <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. 
 
 ## Wallets
 
@@ -303,7 +315,7 @@ The e-note components are derived from the shared secret keys <code>K<sub>d</sub
 |<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sub> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sub> \|\| K<sub>o</sub>)</code> |
-|<code>k<sub>a</sub></code>|amount commitment mask| <code>k<sub>a</sub> = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx \|\| enote_type)</code> |
+|<code>k<sub>a</sub></code>|amount commitment mask| <code>k<sub>a</sub> = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| enote_type)</code> |
 |<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sub> \|\| C<sub>a</sub>)</code> |
 |<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sub> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sup>nm</sup></code>|janus anchor, normal| <code>anchor<sup>nm</sup> = RandBytes(16)</code> |
@@ -377,6 +389,50 @@ Miners should continue the practice of only allowing main addresses for the dest
 When scanning for received enotes, legacy wallets need to calculate <code>NormalizeX(8 k<sub>v</sub> ConvertPubKey1(D<sub>e</sub>))</code>. The operation <code>ConvertPubKey1(D<sub>e</sub>)</code> can be done during point decompression for free. The `NormalizeX()` function simply drops the x coordinate. The scanning performance for legacy wallets is therefore the same as in the old protocol.
 
 Note: Legacy wallets use scalar multiplication in <code>𝔾<sub>2</sub></code> because the legacy view key <code>k<sub>v</sub></code> might be larger than 2<sup>252</sup>, which is not supported in the Montgomery ladder.
+
+## Desired security properties
+
+### Balance recovery security
+
+The term "honest receiver" below means an entity with certain key material correctly executing the balance recovery side of the addressing protocol. In this section, all participants are assumed to adhere to the discrete log assumption.
+
+#### Spend Binding
+
+If an honest receiver recovers `x` and `y` for an enote such that <code>K<sub>o</sub> = x G + y T</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>ps</sub></code> (or <code>k<sub>s</sub></code> for legacy key heirarchies) will also be able to find `x` and `y`.
+
+#### Amount Commitment Binding
+
+If an honest receiver recovers `z` and `a` for an enote such that <code>C = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>k<sub>e</sub></code> will also be able to find `z`.
+
+#### Burning-Bug Resistance
+
+An honest receiver will only ever accept one enote containing a given <code>K<sub>o</sub></code>, rejecting all others.
+
+#### Janus Attack Resistance
+
+A sender cannot construct an enote such that an honest receiver will accept it, and in doing do so, allow the sender to determine that two public addresses share the same <code>k<sub>v</sub></code>, whether it be a main address or subaddress.
+
+### Unlinkability
+
+#### Computational Address-Address Unlinkability
+
+A third party who cannot solve the Discrete Log Problem cannot determine if two non-integrated Cryptonote addresses share the same <code>k<sub>v</sub></code> with any better probability than random guessing.
+
+#### Computational Address-Enote Unlinkability
+
+A third party who cannot solve the Discrete Log Problem cannot determine if a Cryptonote addresses is the destination of an enote with any better probability than random guessing, even if they know the destination address.
+
+#### Computational Enote-Enote Unlinkability
+
+A third party who cannot solve the Discrete Log Problem cannot determine if two enotes have the same destination address with any better probability than random guessing, even if they know the destination address.
+
+#### Computational Enote-Key Image Unlinkability
+
+A third party who cannot solve the Discrete Log Problem cannot determine if any key image is *the* key image for any enote with any better probability than random guessing, even if they know the destination address.
+
+#### Address-Conditional Forward Secrecy
+
+A third party with unbounded compute power can learn no receiver or amount information about a transaction output, nor where it is spent, without knowing the receiver's public address.
 
 ## Credits
 
