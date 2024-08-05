@@ -6,7 +6,7 @@ Carrot (Cryptonote Address on Rerandomizable-RingCT-Output Transactions) is an a
 
 ### 1.1 Cryptonote Addresses, Integrated Addresses, and Subaddresses
 
-Cryptonote addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity. In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs*, an arbitary 8 byte string attached to transactions, was the inital solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses. Wallets then started encrypting the payment IDs on-chain, and adding dummys if no payment IDs were used, which greatly improved privacy. In 2016, Monero [iterated](https://github.com/monero-project/research-lab/issues/7) even further by introducing *subaddresses*, an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
+Cryptonote addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity. In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs*, an arbitrary 8 byte string attached to transactions, was the initial solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy. In 2016, Monero [iterated](https://github.com/monero-project/research-lab/issues/7) even further by introducing *subaddresses*, an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
 
 ### 1.2 FCMP++
 
@@ -109,7 +109,7 @@ Additionally, we define the function `NormalizeX(K)` that takes an Ed25519 point
 
 ## 4. Rerandomizable RingCT abstraction
 
-Here we formally define an abstraction of the FCMP++ consensus layer called *Randomizable RingCT* which lays out the requirements that Carrot needs. All elliptic curve arithmetic occurs on ed25519.
+Here we formally define an abstraction of the FCMP++ consensus layer called *Rerandomizable RingCT* which lays out the requirements that Carrot needs. All elliptic curve arithmetic occurs on ed25519.
 
 ### 4.1 Creating a transaction output
 
@@ -123,7 +123,7 @@ To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub
 
 ### 5.1 Legacy key hierarchy
 
-The following figure shows the overall hierarchy used for legacy wallet keys. Note that the master secret <code>s<sub>m</sub></code> doesn't exist for multisignature wallets. <code>k<sub>v</sub></code> will also be derived seperately from <code>k<sub>s</sub></code>.
+The following figure shows the overall hierarchy used for legacy wallet keys. Note that the master secret <code>s<sub>m</sub></code> doesn't exist for multi-signature wallets. <code>k<sub>v</sub></code> will also be derived separately from <code>k<sub>s</sub></code>.
 
 ```
 s_m (master secret)
@@ -144,7 +144,7 @@ s_m (master secret)
 
 ### 5.2 New key hierarchy
 
-The following figure shows the overall hierarchy one should use for new wallet keys. Users do not *have* to switch their key hierarchy in order to participate in the address protocol, but this heirarchy gives the best features and usability. Note that the master secret <code>s<sub>m</sub></code> doesn't exist for multisignature wallets.
+The following figure shows the overall hierarchy one should use for new wallet keys. Users do not *have* to switch their key hierarchy in order to participate in the address protocol, but this hierarchy gives the best features and usability. Note that the master secret <code>s<sub>m</sub></code> doesn't exist for multi-signature wallets.
 
 ```
 s_m (master secret)
@@ -179,14 +179,14 @@ s_m (master secret)
 
 ### 5.3 New wallet public keys
 
-There are 2 global wallet public keys for the new private key heirarchy. These keys are not usually published, but are needed by lower wallet tiers.
+There are 2 global wallet public keys for the new private key hierarchy. These keys are not usually published, but are needed by lower wallet tiers.
 
 | Key | Name | Value |
 |-----|------|-------|
 |<code>K<sub>s</sub></code> | spend key    | <code>K<sub>s</sub> = k<sub>gi</sub> G + k<sub>ps</sub> T</code></code> |
 |<code>K<sub>v</sub></code> | view key     | <code>K<sub>v</sub> = k<sub>v</sub> K<sub>s</sub></code>                |
 
-Note: for legacy key heirarchies, <code>K<sub>s</sub> = k<sub>s</sub> G</code>.
+Note: for legacy key hierarchies, <code>K<sub>s</sub> = k<sub>s</sub> G</code>.
 
 ### 5.4 New wallet access tiers
 
@@ -219,7 +219,7 @@ This tier has full control of the wallet.
 
 ### 6.1 Address generation
 
-There are two types of Cryptonote addresses: main addresses and subaddresses. There can only be a maximum of one main address per view key, but any number of subaddresses. However, by convention, subaddresses are generated from a "subaddress index", which is a tuple of two 32-bit unsigned integers <code>(j<sub>major</sub>, j<sub>minor</sub>)</code>, which allows for 2<sup>64</sup> addresses. The reason for the distinction between <code>j<sub>major</sub></code> and <code>j<sub>minor</sub></code> is simply for UX reasons. The "major" index is used to make separate "accounts" per wallet, which is used to compartamentalize input selection, change outputs, etc. The subaddress index `(0, 0)` is used to designate the main address, even though the key derivation is different. For brevity's sake, we use the label `j` as shorthand for <code>(j<sub>major</sub>, j<sub>minor</sub>)</code> and `0` as a shorthand for `(0, 0)`.
+There are two types of Cryptonote addresses: main addresses and subaddresses. There can only be a maximum of one main address per view key, but any number of subaddresses. However, by convention, subaddresses are generated from a "subaddress index", which is a tuple of two 32-bit unsigned integers <code>(j<sub>major</sub>, j<sub>minor</sub>)</code>, which allows for 2<sup>64</sup> addresses. The reason for the distinction between <code>j<sub>major</sub></code> and <code>j<sub>minor</sub></code> is simply for UX reasons. The "major" index is used to make separate "accounts" per wallet, which is used to compartmentalize input selection, change outputs, etc. The subaddress index `(0, 0)` is used to designate the main address, even though the key derivation is different. For brevity's sake, we use the label `j` as shorthand for <code>(j<sub>major</sub>, j<sub>minor</sub>)</code> and `0` as a shorthand for `(0, 0)`.
 
 Each Cryptonote address derived from index `j` encodes the tuple <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
 
@@ -230,18 +230,18 @@ The two public keys of the main address are constructed as:
 * <code>K<sub>s</sub><sup>0</sup> = K<sub>s</sub></code>
 * <code>K<sub>v</sub><sup>0</sup> = k<sub>v</sub> G</code>
 
-#### 6.1.2 Subaddress keys (Legacy Heirarchy)
+#### 6.1.2 Subaddress keys (Legacy Hierarchy)
 
-Under the legacy key heirarchy, the two public keys of a subaddress are constructed as:
+Under the legacy key hierarchy, the two public keys of a subaddress are constructed as:
 
 * <code>K<sub>s</sub><sup>j</sup> = K<sub>s</sub> + k<sub>subext</sub><sup>j</sup> G</code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>v</sub> K<sub>s</sub><sup>j</sup></code>
 
 Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes8(8) \|\| k<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires ViewReceived access to the wallet.
 
-#### 6.1.3 Subaddress keys (New Heirarchy)
+#### 6.1.3 Subaddress keys (New Hierarchy)
 
-Under the new key heirarchy, the two public keys of a subaddress are constructed as:
+Under the new key hierarchy, the two public keys of a subaddress are constructed as:
 
 * <code>K<sub>s</sub><sup>j</sup> = k<sub>a</sub><sup>j</sup> K<sub>s</sub></code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>a</sub><sup>j</sup> K<sub>v</sub></code>
@@ -257,7 +257,7 @@ The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used
 
 #### 6.1.4 Integrated Addresses
 
-Subaddresses are the recommended way to differentiate received enotes to your account for most users. However, there are some drawbacks to subaddresses. Most notably, in the past, generating subaddresses required ViewReceived access to the wallet (this is no longer the case with the new key heirarchy). This is not ideal for payment processors, so in practice a lot of processors turned to integrated addresses. Integrated addresses are simply main addresses with an 8-byte arbitrary string attched, called a *payment ID*. This payment ID is encrypted and then encoded into the transaction. In the reference wallet implementation, all transaction constructors who did not need to encode an encrypted payment ID into their transactions included a *dummy* payment ID by generating 8 random bytes. This makes the two types of sends indistinguishable on-chain from each other to external observers.
+Subaddresses are the recommended way to differentiate received enotes to your account for most users. However, there are some drawbacks to subaddresses. Most notably, in the past, generating subaddresses required ViewReceived access to the wallet (this is no longer the case with the new key hierarchy). This is not ideal for payment processors, so in practice a lot of processors turned to integrated addresses. Integrated addresses are simply main addresses with an 8-byte arbitrary string attached, called a *payment ID*. This payment ID is encrypted and then encoded into the transaction. In the reference wallet implementation, all transaction constructors who did not need to encode an encrypted payment ID into their transactions included a *dummy* payment ID by generating 8 random bytes. This makes the two types of sends indistinguishable on-chain from each other to external observers.
 
 ## 7. Transaction protocol
 
@@ -269,7 +269,7 @@ The `unlock_time` field is removed [[15](https://github.com/monero-project/resea
 
 #### 7.1.2 Payment ID
 
-A single 8-byte encrypted payment ID field is retained for 2-output non-coinbase transactions for backwards compability with legacy integrated addresses. When not sending to a legacy integrated address, `pid` is set to zero.
+A single 8-byte encrypted payment ID field is retained for 2-output non-coinbase transactions for backwards compatibility with legacy integrated addresses. When not sending to a legacy integrated address, `pid` is set to zero.
 
 The payment ID `pid` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>pid</sub></code>. The encryption mask is derived from the shared secrets of the payment e-note.
 
@@ -293,7 +293,7 @@ The output key is constructed as <code>K<sub>o</sub> = K<sub>s</sub><sup>j</sup>
 
 #### 7.2.2 View tags
 
-The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the view key. This view tag is used to fail quickly in the scan process for enotes not intended for the current wallet. The bitsize of 24 was chosen as the fixed size because of Jamtis requirements.
+The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the view key. This view tag is used to fail quickly in the scan process for enotes not intended for the current wallet. The bit size of 24 was chosen as the fixed size because of Jamtis requirements.
 
 #### 7.2.3 Amount commitment
 
@@ -301,7 +301,7 @@ The amount commitment is constructed as <code>C<sub>a</sub> = k<sub>a</sub> G + 
 
 #### 7.2.4 Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to rederive the enote ephemeral private key <code>k<sub>e</sub><sup>nm</sup></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *internal* or *self-send* transfers (where one sends money or change back to themselves) in 2-output transactions (i.e. with a shared <code>D<sub>e</sub></code>), <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key heirarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub><sup>nm</sup></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *internal* or *self-send* transfers (where one sends money or change back to themselves) in 2-output transactions (i.e. with a shared <code>D<sub>e</sub></code>), <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key hierarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
 
 #### 7.2.5 Amount
 
@@ -384,7 +384,7 @@ In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared
 
 Coinbase transactions are not considered to be internal.
 
-Miners should continue the practice of only allowing main addresses for the destinations of coinbase transactions in Carrot. This is because, unlike normal enotes, coinbase enotes do not contain an amount commitment, and thus scanning a coinbase enote commitment has no "hard target". If subaddresses can be the destinations of coinbase transactions, then the scanner *must* have their subaddress table loaded and populated to correctly scan coinbase enotes. If only main adddresses are allowed, then the scanner does not need the table and can instead simply check whether <code>K<sub>s</sub><sup>0</sup> ?= K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup></code>.
+Miners should continue the practice of only allowing main addresses for the destinations of coinbase transactions in Carrot. This is because, unlike normal enotes, coinbase enotes do not contain an amount commitment, and thus scanning a coinbase enote commitment has no "hard target". If subaddresses can be the destinations of coinbase transactions, then the scanner *must* have their subaddress table loaded and populated to correctly scan coinbase enotes. If only main addresses are allowed, then the scanner does not need the table and can instead simply check whether <code>K<sub>s</sub><sup>0</sup> ?= K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup></code>.
 
 ### 7.9 Scanning performance
 
@@ -400,7 +400,7 @@ The term "honest receiver" below means an entity with certain key material corre
 
 #### 8.1.1 Spend Binding
 
-If an honest receiver recovers `x` and `y` for an enote such that <code>K<sub>o</sub> = x G + y T</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>ps</sub></code> (or <code>k<sub>s</sub></code> for legacy key heirarchies) will also be able to find `x` and `y`.
+If an honest receiver recovers `x` and `y` for an enote such that <code>K<sub>o</sub> = x G + y T</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>ps</sub></code> (or <code>k<sub>s</sub></code> for legacy key hierarchies) will also be able to find `x` and `y`.
 
 #### 8.1.2 Amount Commitment Binding
 
