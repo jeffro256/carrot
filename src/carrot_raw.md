@@ -113,11 +113,11 @@ Here we formally define an abstraction of the FCMP++ consensus layer called *Ran
 
 ### Creating a transaction output
 
-Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create this transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 <= a <= 2<sup>64</sup></code>. *Coinbase* transactions are slightly different in that `a` is stored publicly instead of <code>C<sub>a</sub></code>, and it is implied that <code>C<sub>a</sub> = G + a H</code>.
+Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create this transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. *Coinbase* transactions are slightly different in that `a` is stored publicly instead of <code>C<sub>a</sub></code>, and it is implied that <code>C<sub>a</sub> = G + a H</code>.
 
 ### Spending a transaction output
 
-To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 <= a <= 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA "linking tag" or "nullifier") <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. 
+To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA "linking tag" or "nullifier") <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. 
 
 ## Wallets
 
@@ -186,16 +186,18 @@ There are 2 global wallet public keys for the new private key heirarchy. These k
 |<code>K<sub>s</sub></code> | spend key    | <code>K<sub>s</sub> = k<sub>gi</sub> G + k<sub>ps</sub> T</code></code> |
 |<code>K<sub>v</sub></code> | view key     | <code>K<sub>v</sub> = k<sub>v</sub> K<sub>s</sub></code>                |
 
+Note: for legacy key heirarchies, <code>K<sub>s</sub> = k<sub>s</sub> G</code>.
+
 ### New wallet access tiers
 
 The new private key hierarchy enables the following useful wallet tiers:
 
-| Tier | Secret | Public keys | Off-chain capabilities | On-chain capabilities |
-|------|--------|-------------|------------------------|-----------------------|
-| AddrGen   | <code>s<sub>ga</sub></code> | <code>K<sub>s</sub>, K<sub>v</sub></code> | generate public addresses | none |
-| ViewReceived  | <code>k<sub>v</sub> | <code>K<sub>s</sub></code> | all | view received |
-| ViewAll   | <code>s<sub>vb</sub></code> | <code>K<sub>s</sub></code> | all | view all |
-| Master   | <code>s<sub>m</sub></code> | - | all | all |
+| Tier         | Secret                      | Off-chain capabilities    | On-chain capabilities |
+|--------------|-----------------------------|---------------------------|-----------------------|
+| AddrGen      | <code>s<sub>ga</sub></code> | generate public addresses | none                  |
+| ViewReceived | <code>k<sub>v</sub>         | all                       | view received         |
+| ViewAll      | <code>s<sub>vb</sub></code> | all                       | view all              |
+| Master       | <code>s<sub>m</sub></code>  | all                       | all                   |
 
 #### Address generator (AddrGen)
 
