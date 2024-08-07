@@ -12,15 +12,11 @@ Cryptonote addresses are a crucial component of Monero's privacy model, providin
 
 To tackle privacy shortcomings with ring signatures, there is a consensus protocol update planned for Monero called FCMP++, which allows for an "anonymity set" of the entire chain. This protocol leverages a primitive for set membership called *Curve Trees*. Curve Trees allows one to efficiently prove that a "rerandomized" curve point exists in some set without revealing the element. In Monero, this set is defined as all "spendable" (i.e. unlocked and valid) transaction outputs on-chain. This randomization transformation is similar to "blinding" coin amounts in Pederson Commitments, and as a side effect, transaction output public keys *themselves* can be rerandomized on-chain. This fact opens the door for addressing protocols to add long-desired features, namely forward secrecy and outgoing view keys.
 
-## Features
+## New Features
 
 ### Address generator
 
 This tier is intended for merchant point-of-sale terminals. It can generate addresses on demand, but otherwise has no access to the wallet (i.e. it cannot recognize any payments in the blockchain).
-
-### Payment validator
-
-This wallet tier combines the Address generator tier with the ability to also view received payments (including amounts). It is intended for validating paid orders. It cannot see outgoing payments and received change.
 
 ### Full view-only wallets
 
@@ -85,9 +81,9 @@ The Edwards curve is used for signatures and more complex cryptographic protocol
 |-----|----------|----------|
 | `G` | generator of <code>𝔾<sub>2</sub></code> | `5866666666666666666666666666666666666666666666666666666666666666`
 | `H` | <code>H<sub>p</sub><sup>1</sup>(G)</code> | `8b655970153799af2aeadc9ff1add0ea6c7251d54154cfa92c173a0dd39c1f94`
-| `T` | <code>H<sub>p</sub><sup>2</sup>("Monero generator T")</code> | `d1e6c1e625757d40bee4eed4fa6ad6447c426693f29dfb1c2fbb4c41e1f6bfd3`
+| `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero generator T"))</code> | `966fc66b82cd56cf85eaec801c42845f5f408878d1561e00d3d7ded2794d094f`
 
-Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions.
+Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on ed25519.
 
 Private keys for Ed25519 are 32-byte integers denoted by a lowercase letter `k`. They are generated using one of the two following functions:
 
@@ -109,15 +105,23 @@ Additionally, we define the function `NormalizeX(K)` that takes an Ed25519 point
 
 ## Rerandomizable RingCT abstraction
 
-Here we formally define an abstraction of the FCMP++ consensus layer called *Rerandomizable RingCT* which lays out the requirements that Carrot needs. All elliptic curve arithmetic occurs on ed25519.
+Here we formally define an abstraction of the FCMP++ consensus layer called *Rerandomizable RingCT* which lays out the requirements that Carrot needs. All elliptic curve arithmetic occurs on Ed25519.
 
 ### Creating a transaction output
 
-Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create this transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. *Coinbase* transactions are slightly different in that `a` is stored publicly instead of <code>C<sub>a</sub></code>, and it is implied that <code>C<sub>a</sub> = G + a H</code>.
+Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create this transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>.
 
 ### Spending a transaction output
 
 To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA "linking tag" or "nullifier") <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. 
+
+### Transaction format
+
+Transactions contain a list of transaction outputs, a list of key images, and additional unstructured data.
+
+### Ledger format
+
+The ledger can be modeled as an append-only list of transactions. Transactions can only contain key images of transaction outputs of lower positions within the ledger list. In practice, the ledger will contain additional cryptographic proofs that verify the integrity of the data within each transaction, but those can largely be ignored for this addressing protocol.
 
 ## Wallets
 
@@ -194,20 +198,20 @@ The new private key hierarchy enables the following useful wallet tiers:
 
 | Tier         | Secret                      | Off-chain capabilities    | On-chain capabilities |
 |--------------|-----------------------------|---------------------------|-----------------------|
-| AddrGen      | <code>s<sub>ga</sub></code> | generate public addresses | none                  |
-| ViewReceived | <code>k<sub>v</sub>         | all                       | view received         |
-| ViewAll      | <code>s<sub>vb</sub></code> | all                       | view all              |
+| Generate-Address      | <code>s<sub>ga</sub></code> | generate public addresses | none                  |
+| View-Received | <code>k<sub>v</sub>         | all                       | view received         |
+| View-All      | <code>s<sub>vb</sub></code> | all                       | view all              |
 | Master       | <code>s<sub>m</sub></code>  | all                       | all                   |
 
-#### Address generator (AddrGen)
+#### Generate-Address
 
 This wallet tier can generate public addresses for the wallet. It doesn't provide any blockchain access.
 
-#### Payment validator (ViewReceived)
+#### View-Received
 
 This level provides the wallet with the ability to see all incoming payments, but cannot see any outgoing payments and change outputs. It can be used for payment processing or auditing purposes.
 
-#### View-only wallet (ViewAll)
+#### View-All
 
 This is a full view-only wallet than can see all incoming and outgoing payments (and thus can calculate the correct wallet balance).
 
@@ -237,7 +241,7 @@ Under the legacy key hierarchy, the two public keys of a subaddress are construc
 * <code>K<sub>s</sub><sup>j</sup> = K<sub>s</sub> + k<sub>subext</sub><sup>j</sup> G</code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>v</sub> K<sub>s</sub><sup>j</sup></code>
 
-Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes8(8) \|\| k<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires ViewReceived access to the wallet.
+Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes8(8) \|\| k<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires View-Received access to the wallet.
 
 #### Subaddress keys (New Hierarchy)
 
@@ -257,7 +261,7 @@ The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used
 
 #### Integrated Addresses
 
-Subaddresses are the recommended way to differentiate received enotes to your account for most users. However, there are some drawbacks to subaddresses. Most notably, in the past, generating subaddresses required ViewReceived access to the wallet (this is no longer the case with the new key hierarchy). This is not ideal for payment processors, so in practice a lot of processors turned to integrated addresses. Integrated addresses are simply main addresses with an 8-byte arbitrary string attached, called a *payment ID*. This payment ID is encrypted and then encoded into the transaction. In the reference wallet implementation, all transaction constructors who did not need to encode an encrypted payment ID into their transactions included a *dummy* payment ID by generating 8 random bytes. This makes the two types of sends indistinguishable on-chain from each other to external observers.
+Subaddresses are the recommended way to differentiate received enotes to your account for most users. However, there are some drawbacks to subaddresses. Most notably, in the past, generating subaddresses required View-Received access to the wallet (this is no longer the case with the new key hierarchy). This is not ideal for payment processors, so in practice a lot of processors turned to integrated addresses. Integrated addresses are simply main addresses with an 8-byte arbitrary string attached, called a *payment ID*. This payment ID is encrypted and then encoded into the transaction. In the reference wallet implementation, all transaction constructors who did not need to encode an encrypted payment ID into their transactions included a *dummy* payment ID by generating 8 random bytes. This makes the two types of sends indistinguishable on-chain from each other to external observers.
 
 ## Transaction protocol
 
@@ -337,7 +341,7 @@ a 2-out transaction. "Normal" refers to *external* enotes, or *internal* enotes 
 | Normal, to subaddress    | <code>ConvertPubkey2(k<sub>e</sub> K<sub>s</sub><sup>j</sup>)</code> |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
-<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. Reusing an ephemeral pubkey is only possible if we know a receiver's <code>k<sub>v</sub></code> (as we would for internal enotes), so we can "emulate" how the receiver would derive <code>K<sub>d</sub></code>. Using a shared <code>D<sub>e</sub></code> saves 32 bytes, and more importantly, a scalar multiplication per transaction.
+<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote (always external) in a 2-out transaction.
 
 ### Sender-receiver shared secrets
 
@@ -348,8 +352,8 @@ The shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ct
 |                       | Derivation                                                           |
 |---------------------- | ---------------------------------------------------------------------|
 |Sender, external       |    <code>NormalizeX(8 k<sub>e</sub> K<sub>v</sub><sup>j</sup>)</code>|
-|Sender, internal       |<code>NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>|
-|Recipient              |<code>NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>|
+|Recipient, external    |<code>NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>|
+|Internal               |                                           <code>s<sub>vb</sub></code>|
 
 Then, <code>K<sub>d</sub><sup>ctx</sup></code> is derived as <code>K<sub>d</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| K<sub>d</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
 
@@ -370,7 +374,7 @@ In case of a Janus attack, the recipient will derive different values of the eno
 
 Enotes which go to an address that belongs to the sending wallet are called "internal e-notes". The most common type are `"change"` e-notes, but internal "`payment"` enotes are also possible. For typical 2-output transactions, the change e-note can reuse the same value of <code>D<sub>e</sub></code> as the payment e-note.
 
-#### Mandatory change rule
+#### Mandatory internal enote rule
 
 Every transaction that spends funds from the wallet must produce at least one internal e-note, typically a change e-note. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
@@ -396,7 +400,7 @@ Note: Legacy wallets use scalar multiplication in <code>𝔾<sub>2</sub></code> 
 
 ### Balance recovery security
 
-The term "honest receiver" below means an entity with certain key material correctly executing the balance recovery side of the addressing protocol. In this section, all participants are assumed to adhere to the discrete log assumption.
+The term "honest receiver" below means an entity with certain key material correctly executing the balance recovery side of the addressing protocol as described above. In this subsection, all participants are assumed to adhere to the discrete log assumption.
 
 #### Spend Binding
 
@@ -404,7 +408,7 @@ If an honest receiver recovers `x` and `y` for an enote such that <code>K<sub>o<
 
 #### Amount Commitment Binding
 
-If an honest receiver recovers `z` and `a` for an enote such that <code>C = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>k<sub>e</sub></code> will also be able to find `z`.
+If an honest receiver recovers `z` and `a` for an enote such that <code>C<sub>a</sub> = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>k<sub>e</sub></code> will also be able to find `z`.
 
 #### Burning-Bug Resistance
 
@@ -435,6 +439,19 @@ A third party who cannot solve the Discrete Log Problem cannot determine if any 
 #### Address-Conditional Forward Secrecy
 
 A third party with unbounded compute power can learn no receiver or amount information about a transaction output, nor where it is spent, without knowing the receiver's public address.
+
+### Indistinguishability
+
+We define multiple processes by which public value representations are created as "indistinguishable" if a third party with unbounded compute power, but without knowledge of public addresses, cannot determine by which process the public values were created from with any better probability than random guessing. The processes in question are described below.
+
+#### Ephemeral pubkey random indistinguishability
+
+Carrot ephemeral pubkeys are indistinguishable from random X25519 pubkeys. The Carrot ephemeral pubkey process is described earlier in this document. The random ephemeral pubkey process is modeled as follows:
+
+1. Sample `x` from uniform integer distribution `[0, ℓ)`.
+2. Set <code>D<sub>e</sub> = x B</code>
+
+Note that in Carrot ephemeral pubkey construction, the ephemeral privkey <code>d<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
 
 ## Credits
 
