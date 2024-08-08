@@ -18,23 +18,27 @@ To tackle privacy shortcomings with ring signatures, there is a consensus protoc
 
 This tier is intended for merchant point-of-sale terminals. It can generate addresses on demand, but otherwise has no access to the wallet (i.e. it cannot recognize any payments in the blockchain).
 
-### 2.2 Full view-only wallets
+### 2.2 Payment validator wallets
 
-Jamtis supports full view-only wallets that can identify spent outputs (unlike legacy view-only wallets), so they can display the correct wallet balance and list all incoming and outgoing transactions.
+Carrot supports view-incoming-only wallets that can verify that an external payment was received into the wallet, without the ability to see where those payment enotes were spent, or spend it themselves. But unlike old Monero view-only wallets, a Carrot payment validator wallet cannot see *"internal"* change enotes.
 
-### 2.3 Janus attack mitigation
+### 2.3 Full view-only wallets
+
+Carrot supports full view-only wallets that can identify spent outputs (unlike legacy view-only wallets), so they can display the correct wallet balance and list all incoming and outgoing transactions.
+
+### 2.4 Janus attack mitigation
 
 Janus attack is a targeted attack that aims to determine if two addresses A, B belong to the same wallet. Janus outputs are crafted in such a way that they appear to the recipient as being received to the wallet address B, while secretly using a key from address A. If the recipient confirms the receipt of the payment, the sender learns that they own both addresses A and B.
 
-Jamtis prevents this attack by allowing the recipient to recognize a Janus output.
+Carrot prevents this attack by allowing the recipient to recognize a Janus output.
 
-### 2.4 Address-Conditional Forward Secrecy
+### 2.5 Address-Conditional Forward Secrecy
 
-As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from observers with any possible level of computational power, as long as the observer does not know receiver's addresses. 
+As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-party observers with the ability to solve the discrete log problem (e.g. quantum computers), as long as the observer does not know receiver's addresses.
 
-### 2.5 Internal Forward Secrecy
+### 2.6 Internal Forward Secrecy
 
-Enotes that are sent "internally" to one's own wallet (e.g. change) have all future 
+Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-party observers with the ability to solve the discrete log problem (e.g. quantum computers), even if the observer has knowledge of the receiver's address.
 
 ## 3. Notation
 
@@ -87,7 +91,7 @@ The Edwards curve is used for signatures and more complex cryptographic protocol
 | `H` | <code>H<sub>p</sub><sup>1</sup>(G)</code> | `8b655970153799af2aeadc9ff1add0ea6c7251d54154cfa92c173a0dd39c1f94`
 | `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero generator T"))</code> | `966fc66b82cd56cf85eaec801c42845f5f408878d1561e00d3d7ded2794d094f`
 
-Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on ed25519.
+Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on Ed25519.
 
 Private keys for Ed25519 are 32-byte integers denoted by a lowercase letter `k`. They are generated using one of the two following functions:
 
@@ -103,7 +107,7 @@ We define two functions that can transform public keys between the two curves:
 1. `ConvertPubkey1(D)` takes a Curve25519 public key `D` and outputs the corresponding Ed25519 public key `K` with an even-valued `x` coordinate.
 2. `ConvertPubkey2(K)` takes an Ed25519 public key `K` and outputs the corresponding Curve25519 public key `D`.
 
-The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the ed25519 y-coordinate and `u` is the X25519 x-coordinate. Notice that the x-coordinates of ed25519 points and the y-coordinates of X25519 points are not considered.
+The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the Ed25519 y-coordinate and `u` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered.
 
 Additionally, we define the function `NormalizeX(K)` that takes an Ed25519 point `K` and returns `K` if its `x` coordinate is even or `-K` if its `x` coordinate is odd.
 
@@ -200,12 +204,12 @@ Note: for legacy key hierarchies, <code>K<sub>s</sub> = k<sub>s</sub> G</code>.
 
 The new private key hierarchy enables the following useful wallet tiers:
 
-| Tier         | Secret                      | Off-chain capabilities    | On-chain capabilities |
-|--------------|-----------------------------|---------------------------|-----------------------|
-| Generate-Address      | <code>s<sub>ga</sub></code> | generate public addresses | none                  |
-| View-Received | <code>k<sub>v</sub>         | all                       | view received         |
-| View-All      | <code>s<sub>vb</sub></code> | all                       | view all              |
-| Master       | <code>s<sub>m</sub></code>  | all                       | all                   |
+| Tier             | Secret                      | Off-chain capabilities    | On-chain capabilities |
+|------------------|-----------------------------|---------------------------|-----------------------|
+| Generate-Address | <code>s<sub>ga</sub></code> | generate public addresses | none                  |
+| View-Received    | <code>k<sub>v</sub>         | all                       | view received         |
+| View-All         | <code>s<sub>vb</sub></code> | all                       | view all              |
+| Master           | <code>s<sub>m</sub></code>  | all                       | all                   |
 
 #### 5.4.1 Generate-Address
 
@@ -378,7 +382,7 @@ In case of a Janus attack, the recipient will derive different values of the eno
 
 Enotes which are destined for the sending wallet are called "internal enotes". The most common type are `"change"` enotes, but internal "`payment"` enotes are also possible. For typical 2-output transactions, an internal enote can reuse the same value of <code>D<sub>e</sub></code> as the other external enote.
 
-As specified above, these enotes use <code>s<sub>vb</sub></code> instead of the ECDH exchange as the value for <code>K<sub>d</sub></code>. This means that we have to effectively perform *two* types of balance recovery scan processes, external <code>K<sub>d</sub></code> and internal <code>K<sub>d</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since scalar-point multiplication in ed25519 is significantly (>100x) slower than Blake2b hashing, and we get to skip that operation for the internal scanning.
+As specified above, these enotes use <code>s<sub>vb</sub></code> instead of the ECDH exchange as the value for <code>K<sub>d</sub></code>. This means that we have to effectively perform *two* types of balance recovery scan processes, external <code>K<sub>d</sub></code> and internal <code>K<sub>d</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since scalar-point multiplication in Ed25519 is significantly (>100x) slower than Blake2b hashing, and we get to skip that operation for the internal scanning.
 
 #### 7.7.1 Mandatory internal enote rule
 
@@ -414,7 +418,7 @@ If an honest receiver recovers `x` and `y` for an enote such that <code>K<sub>o<
 
 #### 8.1.2 Amount Commitment Binding
 
-If an honest receiver recovers `z` and `a` for an enote such that <code>C<sub>a</sub> = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>k<sub>e</sub></code> will also be able to find `z`.
+If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <code>C<sub>a</sub> = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>k<sub>e</sub></code> will also be able to find `z`.
 
 #### 8.1.3 Burning-Bug Resistance
 
@@ -442,22 +446,30 @@ A third party who cannot solve the Discrete Log Problem cannot determine if two 
 
 A third party who cannot solve the Discrete Log Problem cannot determine if any key image is *the* key image for any enote with any better probability than random guessing, even if they know the destination address.
 
-#### 8.2.5 Address-Conditional Forward Secrecy
+### 8.3 Forward Secrecy
 
-A third party with unbounded compute power can learn no receiver or amount information about a transaction output, nor where it is spent, without knowing the receiver's public address.
+Forward secrecy refers to the preservation of privacy properties of past transactions against a future adversary capable of solving the elliptic curve discrete logarithm problem (ECDLP), for example a quantum computer. We refer to an entity with this capability as a *SDLP* (Solver of the Discrete Log Problem). We assume that the properties of secure hash functions still apply to SDLPs (i.e. collision-resistance, preimage-resistance, one-way).
 
-### 8.3 Indistinguishability
+#### 8.3.1 Address-Conditional Forward Secrecy
 
-We define multiple processes by which public value representations are created as "indistinguishable" if a third party with unbounded compute power, but without knowledge of public addresses, cannot determine by which process the public values were created from with any better probability than random guessing. The processes in question are described below.
+A SDLP can learn no receiver or amount information about a transaction output, nor where it is spent, without knowing a receiver's public address.
 
-#### 8.3.1 Ephemeral pubkey random indistinguishability
+#### 8.3.2 Internal Forward Secrecy
 
-Carrot ephemeral pubkeys are indistinguishable from random X25519 pubkeys. The Carrot ephemeral pubkey process is described earlier in this document. The random ephemeral pubkey process is modeled as follows:
+Even with knowledge of <code>s<sub>ga</sub></code>, <code>k<sub>ps</sub></code>, <code>k<sub>gi</sub></code>, <code>k<sub>v</sub></code>, a SDLP without explicit knowledge of <code>s<sub>vb</sub></code> will not be able to discern where internal enotes are received, where/if they are spent, nor the amounts contained within with any better probability than random guessing.
+
+### 8.4 Indistinguishability
+
+We define multiple processes by which public value representations are created as "indistinguishable" if a SDLP, without knowledge of public addresses or private account keys, cannot determine by which process the public values were created with any better probability than random guessing. The processes in question are described below.
+
+#### 8.4.1 Ephemeral pubkey random indistinguishability
+
+Carrot ephemeral pubkeys are indistinguishable from random Curve25519 pubkeys. The Carrot ephemeral pubkey process is described earlier in this document. The random ephemeral pubkey process is modeled as follows:
 
 1. Sample `x` from uniform integer distribution `[0, ℓ)`.
 2. Set <code>D<sub>e</sub> = x B</code>
 
-Note that in Carrot ephemeral pubkey construction, the ephemeral privkey <code>d<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
+Note that in Carrot ephemeral pubkey construction, the ephemeral privkey <code>k<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
 
 ## 9. Credits
 
@@ -466,12 +478,3 @@ Special thanks to everyone who commented and provided feedback on the original [
 ## 10. References
 
 *TODO*
-
-## 11. Appendix A: Forward secrecy
-
-Forward secrecy refers to the preservation of privacy properties of past transactions against a future adversary capable of solving the elliptic curve discrete logarithm problem (ECDLP), for example a quantum computer.
-
-All enotes sent to Cryptonote addresses under this protocol are forward-secret unless an address that belongs to the Cryptonote wallet is publicly known.
-
-If an address is known to the ECDLP solver, all privacy is lost because the private view key <code>k<sub>v</sub></code> can be extracted from the address to recognize all incoming enotes. Once incoming enotes are identified, the ECDLP solver will be able to learn the associated key images by extracting <code>k<sub>g</sub><sup>a</sup> = DLog(K<sub>1</sub>, G)</code> and calculating <code>KI = (k<sub>g</sub><sup>a</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub>(K<sub>o</sub>)</code>.
-
