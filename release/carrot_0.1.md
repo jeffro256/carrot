@@ -28,9 +28,13 @@ Janus attack is a targeted attack that aims to determine if two addresses A, B b
 
 Jamtis prevents this attack by allowing the recipient to recognize a Janus output.
 
-### 2.4 Conditional Forward Secrecy
+### 2.4 Address-Conditional Forward Secrecy
 
 As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from observers with any possible level of computational power, as long as the observer does not know receiver's addresses. 
+
+### 2.5 Internal Forward Secrecy
+
+Enotes that are sent "internally" to one's own wallet (e.g. change) have all future 
 
 ## 3. Notation
 
@@ -144,7 +148,7 @@ s_m (master secret)
 | Key | Name | Derivation | Used to |
 |-----|------|------------|---------|
 |<code>k<sub>s</sub></code> | spend key | <code>k<sub>s</sub> = BytesToInt256(s<sub>m</sub>) mod ℓ</code> | generate key images and spend enotes                 |
-|<code>k<sub>v</sub></code> | view key  | <code>k<sub>v</sub> = KeyDerive2Legacy(k<sub>s</sub>)</code>    | find and decode received e-notes, generate addresses |
+|<code>k<sub>v</sub></code> | view key  | <code>k<sub>v</sub> = KeyDerive2Legacy(k<sub>s</sub>)</code>    | find and decode received enotes, generate addresses |
 
 ### 5.2 New key hierarchy
 
@@ -275,7 +279,7 @@ The `unlock_time` field is removed [[15](https://github.com/monero-project/resea
 
 A single 8-byte encrypted payment ID field is retained for 2-output non-coinbase transactions for backwards compatibility with legacy integrated addresses. When not sending to a legacy integrated address, `pid` is set to zero.
 
-The payment ID `pid` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>pid</sub></code>. The encryption mask is derived from the shared secrets of the payment e-note.
+The payment ID `pid` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>pid</sub></code>. The encryption mask is derived from the shared secrets of the payment enote.
 
 #### 7.1.3 View tag size specifier
 
@@ -285,11 +289,11 @@ A new 1-byte field `npbits` is added for future Jamtis transactions, but is unus
 
 Every 2-output transaction has one ephemeral public key <code>D<sub>e</sub></code>. Transactions with `N > 2` outputs have `N` ephemeral public keys (one for each output). Coinbase transactions always have one key per output.
 
-### 7.2 E-note format
+### 7.2 Enote format
 
-Each e-note represents an amount `a` sent to a Cryptonote address <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
+Each enote represents an amount `a` sent to a Cryptonote address <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
 
-An e-note contains the output public key <code>K<sub>o</sub></code>, the 3-byte combined view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
+An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte combined view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
 
 #### 7.2.1 The output key
 
@@ -311,9 +315,9 @@ The Janus anchor `anchor` is a 16-byte encrypted string that provides protection
 
 The amount `a` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>a</sub></code>.
 
-### 7.3 E-note derivations
+### 7.3 enote derivations
 
-The e-note components are derived from the shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ctx</code>. The definitions of these keys are described below.
+The enote components are derived from the shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ctx</code>. The definitions of these keys are described below.
 
 | Component | Name   | Derivation |
 |-----------|--------|-----------|
@@ -328,7 +332,7 @@ The e-note components are derived from the shared secret keys <code>K<sub>d</sub
 |<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| s<sub>ga</sub> \|\| K<sub>s</sub>)</code> |
 |<code>k<sub>e</sub></code>|ephemeral privkey| <code>k<sub>e</sub> = KeyDerive2("carrot_sending_key_normal" \|\| anchor<sup>nm</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
-The variable `enote_type` is `"payment"` or `"change"` depending on the e-note type.
+The variable `enote_type` is `"payment"` or `"change"` depending on the enote type.
 
 ### 7.4 Ephemeral pubkey construction
 
@@ -372,11 +376,13 @@ In case of a Janus attack, the recipient will derive different values of the eno
 
 ### 7.7 Internal enotes
 
-Enotes which go to an address that belongs to the sending wallet are called "internal e-notes". The most common type are `"change"` e-notes, but internal "`payment"` enotes are also possible. For typical 2-output transactions, the change e-note can reuse the same value of <code>D<sub>e</sub></code> as the payment e-note.
+Enotes which are destined for the sending wallet are called "internal enotes". The most common type are `"change"` enotes, but internal "`payment"` enotes are also possible. For typical 2-output transactions, an internal enote can reuse the same value of <code>D<sub>e</sub></code> as the other external enote.
+
+As specified above, these enotes use <code>s<sub>vb</sub></code> instead of the ECDH exchange as the value for <code>K<sub>d</sub></code>. This means that we have to effectively perform *two* types of balance recovery scan processes, external <code>K<sub>d</sub></code> and internal <code>K<sub>d</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since scalar-point multiplication in ed25519 is significantly (>100x) slower than Blake2b hashing, and we get to skip that operation for the internal scanning.
 
 #### 7.7.1 Mandatory internal enote rule
 
-Every transaction that spends funds from the wallet must produce at least one internal e-note, typically a change e-note. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
+Every transaction that spends funds from the wallet must produce at least one internal enote, typically a change enote. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
 #### 7.7.2 One payment, one change rule
 
@@ -465,7 +471,7 @@ Special thanks to everyone who commented and provided feedback on the original [
 
 Forward secrecy refers to the preservation of privacy properties of past transactions against a future adversary capable of solving the elliptic curve discrete logarithm problem (ECDLP), for example a quantum computer.
 
-All e-notes sent to Cryptonote addresses under this protocol are forward-secret unless an address that belongs to the Cryptonote wallet is publicly known.
+All enotes sent to Cryptonote addresses under this protocol are forward-secret unless an address that belongs to the Cryptonote wallet is publicly known.
 
-If an address is known to the ECDLP solver, all privacy is lost because the private view key <code>k<sub>v</sub></code> can be extracted from the address to recognize all incoming e-notes. Once incoming e-notes are identified, the ECDLP solver will be able to learn the associated key images by extracting <code>k<sub>g</sub><sup>a</sup> = DLog(K<sub>1</sub>, G)</code> and calculating <code>KI = (k<sub>g</sub><sup>a</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub>(K<sub>o</sub>)</code>.
+If an address is known to the ECDLP solver, all privacy is lost because the private view key <code>k<sub>v</sub></code> can be extracted from the address to recognize all incoming enotes. Once incoming enotes are identified, the ECDLP solver will be able to learn the associated key images by extracting <code>k<sub>g</sub><sup>a</sup> = DLog(K<sub>1</sub>, G)</code> and calculating <code>KI = (k<sub>g</sub><sup>a</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub>(K<sub>o</sub>)</code>.
 
