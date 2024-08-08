@@ -462,14 +462,31 @@ Even with knowledge of <code>s<sub>ga</sub></code>, <code>k<sub>ps</sub></code>,
 
 We define multiple processes by which public value representations are created as "indistinguishable" if a SDLP, without knowledge of public addresses or private account keys, cannot determine by which process the public values were created with any better probability than random guessing. The processes in question are described below.
 
-#### 8.4.1 Ephemeral pubkey random indistinguishability
+#### 8.4.1 Transaction output random indistinguishability
+
+Carrot transaction outputs are indistinguishable from random transaction outputs. The Carrot transaction output process is described earlier in this document. The random transaction output process is modeled as follows:
+
+1. Sample <code>r<sub>1</sub></code> and <code>r<sub>2</sub></code> independently from uniform integer distribution `[0, ℓ)`.
+2. Set <code>K<sub>o</sub> = r<sub>1</sub> G</code>
+3. Set <code>C<sub>a</sub> = r<sub>2</sub> G</code>
+
+#### 8.4.2 Ephemeral pubkey random indistinguishability
 
 Carrot ephemeral pubkeys are indistinguishable from random Curve25519 pubkeys. The Carrot ephemeral pubkey process is described earlier in this document. The random ephemeral pubkey process is modeled as follows:
 
-1. Sample `x` from uniform integer distribution `[0, ℓ)`.
-2. Set <code>D<sub>e</sub> = x B</code>
+1. Sample `r` from uniform integer distribution `[0, ℓ)`.
+2. Set <code>D<sub>e</sub> = r B</code>
 
 Note that in Carrot ephemeral pubkey construction, the ephemeral privkey <code>k<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
+
+### 8.5 Other enote component random indistinguishability
+
+The remaining Carrot enote components are indistinguishable from random byte strings. The Carrot enote process is described earlier in this document. The random enote byte string process is modeled as follows:
+
+1. Sample <code>a<sub>enc</sub> = RandBytes(8)</code>
+2. Sample <code>anchor<sub>enc</sub> = RandBytes(16)</code>
+3. Sample <code>vt = RandBytes(3)</code>
+4. Sample <code>pid<sub>enc</sub> = RandBytes(8)</code>
 
 ## 9. Credits
 
