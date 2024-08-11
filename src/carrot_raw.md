@@ -32,13 +32,17 @@ Janus attack is a targeted attack that aims to determine if two addresses A, B b
 
 Carrot prevents this attack by allowing the recipient to recognize a Janus output.
 
-### Address-Conditional Forward Secrecy
+### Address-conditional forward secrecy
 
 As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-party observers with the ability to solve the discrete log problem (e.g. quantum computers), as long as the observer does not know receiver's addresses.
 
-### Internal Forward Secrecy
+### Internal forward secrecy
 
 Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-party observers with the ability to solve the discrete log problem (e.g. quantum computers), even if the observer has knowledge of the receiver's address.
+
+### Payment ID confirmation
+
+Payment IDs are confirmed by a cryptographic hash, which gives integrated address payment processors better guarantees, provides better UX, and allows many-output batched transactions to unambiguously include an integrated address destination.
 
 ## Notation
 
@@ -50,6 +54,7 @@ Enotes that are sent "internally" to one's own wallet will have all transactions
 1. The function `IntToBytes4(x)` serializes an integer into a little-endian encoded 4-byte output.
 1. The function `RandBytes(x)` generates a random x-byte string.
 1. Concatenation is denoted by `||`.
+1. Bit-wise XOR (exclusive-or) is denoted by `⊕`.
 
 ### Hash functions
 
@@ -313,13 +318,13 @@ The amount commitment is constructed as <code>C<sub>a</sub> = k<sub>a</sub> G + 
 
 #### Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub><sup>nm</sup></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *internal* or *self-send* transfers (where one sends money or change back to themselves) in 2-output transactions (i.e. with a shared <code>D<sub>e</sub></code>), <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key hierarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *internal* or *self-send* transfers (where one sends money or change back to themselves) in 2-output transactions (i.e. with a shared <code>D<sub>e</sub></code>), <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key hierarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
 
 #### Amount
 
 The amount `a` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>a</sub></code>.
 
-### enote derivations
+### Enote derivations
 
 The enote components are derived from the shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ctx</code>. The definitions of these keys are described below.
 
@@ -327,16 +332,16 @@ The enote components are derived from the shared secret keys <code>K<sub>d</sub>
 |-----------|--------|-----------|
 |<code>vt</code>|view tag| <code>vt = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sub> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sub> \|\| K<sub>o</sub>)</code> |
-|<code>k<sub>a</sub></code>|amount commitment mask| <code>k<sub>a</sub> = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sub> \|\| C<sub>a</sub>)</code> |
-|<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sub> \|\| C<sub>a</sub>)</code> |
+|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| enote_type)</code> |
+|<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sup>nm</sup></code>|janus anchor, normal| <code>anchor<sup>nm</sup> = RandBytes(16)</code> |
 |<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| s<sub>ga</sub> \|\| K<sub>s</sub>)</code> |
 |<code>k<sub>e</sub></code>|ephemeral privkey| <code>k<sub>e</sub> = KeyDerive2("carrot_sending_key_normal" \|\| anchor<sup>nm</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
-The variable `enote_type` is `"payment"` or `"change"` depending on the enote type.
+The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
 
 ### Ephemeral pubkey construction
 
@@ -405,6 +410,67 @@ Miners should continue the practice of only allowing main addresses for the dest
 When scanning for received enotes, legacy wallets need to calculate <code>NormalizeX(8 k<sub>v</sub> ConvertPubKey1(D<sub>e</sub>))</code>. The operation <code>ConvertPubKey1(D<sub>e</sub>)</code> can be done during point decompression for free. The `NormalizeX()` function simply drops the x coordinate. The scanning performance for legacy wallets is therefore the same as in the old protocol.
 
 Note: Legacy wallets use scalar multiplication in <code>𝔾<sub>2</sub></code> because the legacy view key <code>k<sub>v</sub></code> might be larger than 2<sup>252</sup>, which is not supported in the Montgomery ladder.
+
+## Balance recovery
+
+### Enote Scanning
+
+If this enote scan returns successfully, we will be able to recover the address spend pubkey, amount, and PID. Additionally, a successful return guarantees that A) the enote is uniquely addressed to our account, B) Janus attacks are mitigated, and C) burning bug attacks are mitigated. Note, however, that a successful return does *NOT* guarantee that the enote is spendable (i.e. that we will be able to recover `x, y` such that <code>K<sub>o</sub> = x G + y T</code>).
+
+We perform the scan process twice per enote, once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code>.
+
+1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code>
+1. If `vt' ≠ vt'`, then <code><b>ABORT</b></code>
+1. Let <code>K<sub>d</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| K<sub>d</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
+1. If a coinbase enote, then let `a' = a`, let <code>k<sub>a</sub>' = 1</code>, and skip to step 13
+1. Let <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>a' = a<sub>enc</sub> ⊕ m<sub>a</sub></code>
+1. Let <code>k<sub>a</sub>' = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "payment")</code>
+1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
+1. If <code>C<sub>a</sub>' == C<sub>a</sub></code>, then jump to step 13
+1. Let <code>k<sub>a</sub>' = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "change")</code>
+1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
+1. If <code>C<sub>a</sub>' ≠ C<sub>a</sub></code>, then <code><b>ABORT</b></code>
+1. Let <code>k<sub>g</sub><sup>o</sup>' = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>t</sub><sup>o</sup>' = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
+1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
+1. Let <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Set <code>pid' = pid<sub>enc</sub> ⊕ m<sub>pid</sub></code>
+1. Let <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>anchor' = anchor<sub>enc</sub> ⊕ m<sub>anchor</sub></code>
+1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
+1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
+1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 32
+1. Set `pid' = nullpid`
+1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 32
+1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| s<sub>ga</sub> \|\| K<sub>s</sub>)</code>
+1. If <code>anchor' ≠ anchor<sup>sp</sup></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
+1. Return successfully!
+
+### Determining spendability and computing key images
+
+An enote is spendable if the computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>'</code> is one that we can actually derive. However, the enote scan process does not inform the sender how to derive the subaddress. One method of quickly checking whether a nominal address spend pubkey is derivable, and thus spendable, is a *subaddress table*. A subaddress table maps precomputed address spend pubkeys to their index `j`. Once the subaddress index for an enote is determined, we can begin computing the key image.
+
+#### Legacy key hierarchy key images
+
+If `j≠0`, then let <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes8(8) \|\| k<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>subext</sub><sup>j</sup> = 0</code>.
+
+The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>subext</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
+
+#### New key hierarchy key images
+
+If `j≠0`, then let <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
+
+The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>a</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
+
+### Handling key images and calculating balance
+
+If a scanner successfully scans any enote within a transaction, they should save all those key images indefinitely as "potentially spent". The rest of the ledger's key images can be discarded. Then, the key images for each enote should be calculated. The "unspent" enotes are determined as those whose key images is not within the set of potentially spent key images. The sum total of the amounts of these enotes is the current balance of the wallet, and the unspent enotes can be used in future input proofs.
 
 ## Desired security properties
 
