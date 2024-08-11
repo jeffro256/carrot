@@ -545,7 +545,7 @@ Carrot ephemeral pubkeys are indistinguishable from random Curve25519 pubkeys. T
 
 Note that in Carrot ephemeral pubkey construction, the ephemeral privkey <code>k<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
 
-### Other enote component random indistinguishability
+#### Other enote component random indistinguishability
 
 The remaining Carrot enote components are indistinguishable from random byte strings. The Carrot enote process is described earlier in this document. The random enote byte string process is modeled as follows:
 
