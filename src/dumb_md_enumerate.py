@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import fileinput
 import sys
 

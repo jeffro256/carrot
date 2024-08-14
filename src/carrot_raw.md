@@ -6,7 +6,7 @@ Carrot (Cryptonote Address on Rerandomizable-RingCT-Output Transactions) is an a
 
 ### Cryptonote Addresses, Integrated Addresses, and Subaddresses
 
-Cryptonote addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity. In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs*, an arbitrary 8 byte string attached to transactions, was the initial solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy. In 2016, Monero [iterated](https://github.com/monero-project/research-lab/issues/7) even further by introducing *subaddresses*, an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
+Cryptonote addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity. In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs*, an arbitrary 8 byte string attached to transactions, was the initial solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy. In 2016, Monero iterated even further by introducing *subaddresses* [[citation](https://github.com/monero-project/research-lab/issues/7)], an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
 
 ### FCMP++
 
@@ -58,7 +58,7 @@ Payment IDs are confirmed by a cryptographic hash, which gives integrated addres
 
 ### Hash functions
 
-The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[8](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
+The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[citation](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
 
 * The output length is set to `b` bytes.
 * Hashing is done in sequential mode.
@@ -82,13 +82,13 @@ Both curves are birationally equivalent, so the subgroups <code>𝔾<sub>1</sub>
 
 #### Curve25519
 
-Curve25519 is used exclusively to serialize the Diffie-Hellman ephemeral pubkey [[9](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] in transactions to match Jamtis behavior.
+Curve25519 is used exclusively to serialize the Diffie-Hellman ephemeral pubkey [[citation](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] in transactions to match Jamtis behavior.
 
 Public keys (elements of <code>𝔾<sub>1</sub></code>) are denoted by the capital letter `D` and are serialized as the x-coordinate of the corresponding Curve25519 point. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
 
 #### Ed25519
 
-The Edwards curve is used for signatures and more complex cryptographic protocols [[10](https://ed25519.cr.yp.to/ed25519-20110926.pdf)]. The following generators are used:
+The Edwards curve is used for signatures and more complex cryptographic protocols [[citation](https://ed25519.cr.yp.to/ed25519-20110926.pdf)]. The following generators are used:
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
@@ -282,7 +282,7 @@ Subaddresses are the recommended way to differentiate received enotes to your ac
 
 #### Unlock time
 
-The `unlock_time` field is removed [[15](https://github.com/monero-project/research-lab/issues/78)].
+The `unlock_time` field is removed [[citation](https://github.com/monero-project/research-lab/issues/78)].
 
 #### Payment ID
 
@@ -578,4 +578,4 @@ Special thanks to everyone who commented and provided feedback on the original [
 
 ## References
 
-*TODO*
+*INSERT REFERENCES HERE*
