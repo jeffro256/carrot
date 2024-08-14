@@ -318,7 +318,7 @@ The amount commitment is constructed as <code>C<sub>a</sub> = k<sub>a</sub> G + 
 
 #### Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *internal* or *self-send* transfers (where one sends money or change back to themselves) in 2-output transactions (i.e. with a shared <code>D<sub>e</sub></code>), <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key hierarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key hierarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
 
 #### Amount
 
@@ -345,16 +345,17 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the enote ty
 
 ### Ephemeral pubkey construction
 
-The ephemeral pubkey <code>D</code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to and how many outputs there are in the transaction. Here "special" means an *internal* enote in
-a 2-out transaction. "Normal" refers to *external* enotes, or *internal* enotes in a >2-out transaction.
+The ephemeral pubkey <code>D<sub>e</sub></code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to, how many outputs are in the transaction, and whether we are deriving on the internal or external path. Here "special" means an *external self-send* enote in
+a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 
 | Transfer Type            | <code>D<sub>e</sub></code> Derivation                                |
 |--------------------------|----------------------------------------------------------------------|   
 | Normal, to main address  | <code>ConvertPubkey2(k<sub>e</sub> G)</code>                         |
 | Normal, to subaddress    | <code>ConvertPubkey2(k<sub>e</sub> K<sub>s</sub><sup>j</sup>)</code> |
+| Internal                 | *any*                                                                |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
-<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote (always external) in a 2-out transaction.
+<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are "special", then no specific derivation of <code>D<sub>e</sub></code> is required. Internal enotes do not require any specific derivation for <code>D<sub>e</sub></code> either.
 
 ### Sender-receiver shared secrets
 
@@ -383,21 +384,29 @@ The purpose of `input_context` is to make <code>K<sub>d</sub><sup>ctx</sup></cod
 
 In case of a Janus attack, the recipient will derive different values of the enote ephemeral pubkey <code>D<sub>e</sub></code> and Janus `anchor`, and thus will not recognize the output.
 
-### Internal enotes
+### Self-send enotes
 
-Enotes which are destined for the sending wallet are called "internal enotes". The most common type are `"change"` enotes, but internal "`payment"` enotes are also possible. For typical 2-output transactions, an internal enote can reuse the same value of <code>D<sub>e</sub></code> as the other external enote.
+Self-send enotes are any enote created by the wallet that the enote is also destined to.
 
-As specified above, these enotes use <code>s<sub>vb</sub></code> instead of the ECDH exchange as the value for <code>K<sub>d</sub></code>. This means that we have to effectively perform *two* types of balance recovery scan processes, external <code>K<sub>d</sub></code> and internal <code>K<sub>d</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since scalar-point multiplication in Ed25519 is significantly (>100x) slower than Blake2b hashing, and we get to skip that operation for the internal scanning.
+#### Internal enotes
 
-#### Mandatory internal enote rule
+Enotes which are destined for the sending wallet and use a symmetric secret instead of a ECDH exchange are called "internal enotes". The most common type are `"change"` enotes, but internal `"payment"` enotes are also possible. For typical 2-output transactions, an internal enote reuses the same value of <code>D<sub>e</sub></code> as the other enote.
 
-Every transaction that spends funds from the wallet must produce at least one internal enote, typically a change enote. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
+As specified above, these enotes use <code>s<sub>vb</sub></code> as the value for <code>K<sub>d</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>K<sub>d</sub></code> and internal <code>K<sub>d</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication and multiplication by eight in Ed25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
+
+#### Special enotes
+
+Special enotes are external self-send enotes in a 2-out transaction. The sender employs different ephemeral pubkey derivations and Janus anchor derivations than a regular external enote.
+
+#### Mandatory self-send enote rule
+
+Every transaction that spends funds from the wallet must produce at least one self-send (not necessarily internal) enote, typically a change enote. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
 #### One payment, one change rule
 
-In a 2-out transaction with two internal enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
+In a 2-out transaction with two internal or two special enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
 
-In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> (i.e. they are two internal addresses) in a 2-out transaction, then <code>K<sub>d</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two internal enotes to have unique derivations, then the `enote_type` needs to be unique.
+In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>K<sub>d</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
 
 ### Coinbase transactions
 
@@ -476,7 +485,16 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ### Balance recovery security
 
-The term "honest receiver" below means an entity with certain key material correctly executing the balance recovery side of the addressing protocol as described above. In this subsection, all participants are assumed to adhere to the discrete log assumption.
+The term "honest receiver" below means an entity with certain private key material correctly executing the balance recovery instructions of the addressing protocol as described above. A receiver who correctly follows balance recovery instructions but lies to the sender whether they received funds is still considered "honest". Likewise, an "honest sender" is an entity who follows the sending instructions of the addressing protocol as described above. In this subsection, all participants are assumed to adhere to the discrete log assumption.
+
+#### Completeness
+
+An honest sender who sends amount `a` and payment ID `pid` to address <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>, internally or externally, can be guaranteed that the honest receiver who derived that address will:
+
+1. Recover the same <code>a, pid, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup></code>
+2. Recover `x, y, z` such that <code>C<sub>a</sub> = z G + a H</code> and <code>K<sub>o</sub> = x G + y T</code>
+
+This is to be achieved without any other interactivity.
 
 #### Spend Binding
 
@@ -522,7 +540,7 @@ A SDLP can learn no receiver or amount information about a transaction output, n
 
 #### Internal Forward Secrecy
 
-Even with knowledge of <code>s<sub>ga</sub></code>, <code>k<sub>ps</sub></code>, <code>k<sub>gi</sub></code>, <code>k<sub>v</sub></code>, a SDLP without explicit knowledge of <code>s<sub>vb</sub></code> will not be able to discern where internal enotes are received, where/if they are spent, nor the amounts contained within with any better probability than random guessing.
+Even with knowledge of <code>s<sub>ga</sub></code>, <code>k<sub>ps</sub></code>, <code>k<sub>gi</sub></code>, <code>k<sub>v</sub></code>, a SDLP without explicit knowledge of <code>s<sub>vb</sub></code> will not be able to discern where internal enotes are received, where/if they are spent, nor the amounts with any better probability than random guessing.
 
 ### Indistinguishability
 
