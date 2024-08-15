@@ -1,13 +1,13 @@
 # Carrot
 
-## Read
+## Reading
 
-See documents in the release/ folder
+See `carrot.md`
 
 ## Contributing
 
-Make changes to the carrot_raw.md file in the src/ folder
+Make changes to the `carrot_raw.md` file in the `src/` folder
 
-## Implementation
+## Finalizing
 
-See the WIP implementation of specification at https://github.com/jeffro256/monero/tree/jamtis_rct
+To finalize the document after making changes to `carrot_raw.md`, run `finalize.sh`. Finalizing adds section numbers, numbers citations, creates a reference table, etc. This will overwrite `carrot.md`. 
