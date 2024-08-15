@@ -122,19 +122,19 @@ Here we formally define an abstraction of the FCMP++ consensus layer called *Rer
 
 ### Creating a transaction output
 
-Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create this transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>.
+Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create a valid transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Coinbase transactions have a plaintext integer amount `a` instead of the amount commitment <code>C<sub>a</sub></code>, which is implied to be <code>C<sub>a</sub> = G + a H</code>.
 
 ### Spending a transaction output
 
-To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA "linking tag" or "nullifier") <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. 
+To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA *"linking tag"* or *"nullifier"*) <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. All key images must be in the prime order subgroup <code>𝔾<sub>2</sub></code>.
 
-### Transaction format
+### Transaction model
 
-Transactions contain a list of transaction outputs, a list of key images, and additional unstructured data.
+Transactions contain a list of outputs, a list of key images, and additional unstructured data. All output pubkeys <code>K<sub>o</sub></code> and key images `L` must be unique within a transaction. 
 
-### Ledger format
+### Ledger model
 
-The ledger can be modeled as an append-only list of transactions. Transactions can only contain key images of transaction outputs of lower positions within the ledger list. In practice, the ledger will contain additional cryptographic proofs that verify the integrity of the data within each transaction, but those can largely be ignored for this addressing protocol.
+The ledger can be modeled as an append-only list of transactions. Transactions can only contain key images of transaction outputs of "lower" positions within the ledger list. No two key images in any transaction in the ledger are ever equal to each other. In practice, the ledger will contain additional cryptographic proofs that verify the integrity of the data within each transaction, but those can largely be ignored for this addressing protocol.
 
 ## Wallets
 
@@ -302,7 +302,7 @@ Every 2-output transaction has one ephemeral public key <code>D<sub>e</sub></cod
 
 Each enote represents an amount `a` sent to a Cryptonote address <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
 
-An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte combined view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
+An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* <code>anchor<sub>enc</sub></code>, and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
 
 #### The output key
 
@@ -481,7 +481,7 @@ The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>a</sub><sup>j</s
 
 If a scanner successfully scans any enote within a transaction, they should save all those key images indefinitely as "potentially spent". The rest of the ledger's key images can be discarded. Then, the key images for each enote should be calculated. The "unspent" enotes are determined as those whose key images is not within the set of potentially spent key images. The sum total of the amounts of these enotes is the current balance of the wallet, and the unspent enotes can be used in future input proofs.
 
-## Desired security properties
+## Security properties
 
 ### Balance recovery security
 
@@ -574,7 +574,9 @@ The remaining Carrot enote components are indistinguishable from random byte str
 
 ## Credits
 
-Special thanks to everyone who commented and provided feedback on the original [Jamtis gist](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024). Some of the ideas were incorporated in this document.
+Special thanks to everyone who commented and provided feedback on the original [Jamtis gist](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024). Many of the ideas were incorporated in this document.
+
+A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT specifications, which were the foundation of this document, containing most of the transaction protocol math.
 
 ## References
 
