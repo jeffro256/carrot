@@ -282,7 +282,7 @@ Subaddresses are the recommended way to differentiate received enotes to your ac
 
 #### 7.1.1 Unlock time
 
-The `unlock_time` field is removed [[6](https://github.com/monero-project/research-lab/issues/78)].
+The `unlock_time` field [[6](https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[7](https://github.com/monero-project/research-lab/issues/78)].
 
 #### 7.1.2 Payment ID
 
@@ -508,11 +508,11 @@ If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <
 
 **Background**
 
-The burning bug [[7](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
+The burning bug [[8](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
 
-An initial patch [[8](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
+An initial patch [[9](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
 
-The original Jamtis addressing proposal [[9](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] by @tevador and the *Guaranteed Address* [[10](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
+The original Jamtis addressing proposal [[10](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] by @tevador and the *Guaranteed Address* [[11](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
 
 **Statement**
 
@@ -595,6 +595,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://keccak.team/keccak.html
 1. https://cr.yp.to/ecdh/curve25519-20060209.pdf
 1. https://ed25519.cr.yp.to/ed25519-20110926.pdf
+1. https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[citation](https://github.com/monero-project/research-lab/issues/78
 1. https://github.com/monero-project/research-lab/issues/78
 1. https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html
 1. https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c

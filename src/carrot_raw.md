@@ -282,7 +282,7 @@ Subaddresses are the recommended way to differentiate received enotes to your ac
 
 #### Unlock time
 
-The `unlock_time` field is removed [[citation](https://github.com/monero-project/research-lab/issues/78)].
+The `unlock_time` field [[citation](https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[citation](https://github.com/monero-project/research-lab/issues/78)].
 
 #### Payment ID
 
