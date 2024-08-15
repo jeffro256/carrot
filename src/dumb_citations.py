@@ -10,13 +10,13 @@ reference table replacing the string "*INSERT REFERENCES HERE*".
 """
 
 def parse_citation_links(s, cit_no):
-    CIT_LINK_PATTERN = r"\[citation\]\((.+)\)"
+    CIT_LINK_PATTERN = r"\[citation\]\((.+?)\)"
     links = []
     m = re.search(CIT_LINK_PATTERN, s)
     while m:
         links.append(m.group(1))
         repl = f"[{cit_no}](\\1)"
-        s = re.sub(CIT_LINK_PATTERN, repl, s)
+        s = re.sub(CIT_LINK_PATTERN, repl, s, count=1)
         cit_no += 1
         m = re.search(CIT_LINK_PATTERN, s)
     return s, links

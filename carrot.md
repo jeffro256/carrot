@@ -595,9 +595,9 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://keccak.team/keccak.html
 1. https://cr.yp.to/ecdh/curve25519-20060209.pdf
 1. https://ed25519.cr.yp.to/ed25519-20110926.pdf
-1. https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[citation](https://github.com/monero-project/research-lab/issues/78
+1. https://www.getmonero.org/resources/moneropedia/unlocktime.html
 1. https://github.com/monero-project/research-lab/issues/78
 1. https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html
 1. https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c
-1. https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] by @tevador and the *Guaranteed Address* [[citation](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100
+1. https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024
 1. https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100
