@@ -34,11 +34,11 @@ Carrot prevents this attack by allowing the recipient to recognize a Janus outpu
 
 ### Address-conditional forward secrecy
 
-As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-party observers with the ability to solve the discrete log problem (e.g. quantum computers), as long as the observer does not know receiver's addresses.
+As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), as long as the observer does not know receiver's addresses.
 
 ### Internal forward secrecy
 
-Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-party observers with the ability to solve the discrete log problem (e.g. quantum computers), even if the observer has knowledge of the receiver's address.
+Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), even if the observer has knowledge of the receiver's address.
 
 ### Payment ID confirmation
 
@@ -483,9 +483,11 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## Security properties
 
+Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, all participants adhere to the decisional Diffie-Hellman assumption [[https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)]. In other words, unless otherwise specified, it is assumed that the decisional Diffie-Hellman problem is hard in Curve25519 and Ed25519.
+
 ### Balance recovery security
 
-The term "honest receiver" below means an entity with certain private key material correctly executing the balance recovery instructions of the addressing protocol as described above. A receiver who correctly follows balance recovery instructions but lies to the sender whether they received funds is still considered "honest". Likewise, an "honest sender" is an entity who follows the sending instructions of the addressing protocol as described above. In this subsection, all participants are assumed to adhere to the discrete log assumption.
+The term "honest receiver" below means an entity with certain private key material correctly executing the balance recovery instructions of the addressing protocol as described above. A receiver who correctly follows balance recovery instructions but lies to the sender whether they received funds is still considered "honest". Likewise, an "honest sender" is an entity who follows the sending instructions of the addressing protocol as described above.
 
 #### Completeness
 
@@ -520,7 +522,7 @@ For any <code>K<sub>o</sub></code>, it is computationally intractable to find tw
 
 #### Janus Attack Resistance
 
-There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
+There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more honestly-derived non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
 
 More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>K<sub>d</sub> = NormalizeX(8 r K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
 
@@ -528,19 +530,19 @@ More concretely, it is computationally intractable, without knowledge of the rec
 
 #### Computational Address-Address Unlinkability
 
-A third party who cannot solve the Discrete Log Problem cannot determine if two non-integrated Cryptonote addresses share the same <code>k<sub>v</sub></code> with any better probability than random guessing.
+A third party cannot determine if two non-integrated Cryptonote addresses share the same <code>k<sub>v</sub></code> with any better probability than random guessing.
 
 #### Computational Address-Enote Unlinkability
 
-A third party who cannot solve the Discrete Log Problem cannot determine if a Cryptonote addresses is the destination of an enote with any better probability than random guessing, even if they know the destination address.
+A third party cannot determine if a Cryptonote addresses is the destination of an enote with any better probability than random guessing, even if they know the destination address.
 
 #### Computational Enote-Enote Unlinkability
 
-A third party who cannot solve the Discrete Log Problem cannot determine if two enotes have the same destination address with any better probability than random guessing, even if they know the destination address.
+A third party cannot determine if two enotes have the same destination address with any better probability than random guessing, even if they know the destination address.
 
 #### Computational Enote-Key Image Unlinkability
 
-A third party who cannot solve the Discrete Log Problem cannot determine if any key image is *the* key image for any enote with any better probability than random guessing, even if they know the destination address.
+A third party cannot determine if any key image is *the* key image for any enote with any better probability than random guessing, even if they know the destination address.
 
 ### Forward Secrecy
 
