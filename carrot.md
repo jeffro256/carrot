@@ -483,7 +483,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## 9. Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, all participants adhere to the decisional Diffie-Hellman assumption [[https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)]. In other words, unless otherwise specified, it is assumed that the decisional Diffie-Hellman problem is hard in Curve25519 and Ed25519.
+Below are listed some security properties which are to hold for Carrot. Unless other specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[9](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### 9.1 Balance recovery security
 
@@ -510,11 +510,11 @@ If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <
 
 **Background**
 
-The burning bug [[9](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
+The burning bug [[10](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
 
-An initial patch [[10](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
+An initial patch [[11](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
 
-The original Jamtis addressing proposal [[11](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] by @tevador and the *Guaranteed Address* [[12](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
+The original Jamtis addressing proposal [[12](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] by @tevador and the *Guaranteed Address* [[13](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
 
 **Statement**
 
@@ -602,6 +602,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://ed25519.cr.yp.to/ed25519-20110926.pdf
 1. https://www.getmonero.org/resources/moneropedia/unlocktime.html
 1. https://github.com/monero-project/research-lab/issues/78
+1. https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf
 1. https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html
 1. https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c
 1. https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024

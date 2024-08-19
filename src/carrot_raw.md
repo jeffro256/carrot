@@ -483,7 +483,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, all participants adhere to the decisional Diffie-Hellman assumption [[https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)]. In other words, unless otherwise specified, it is assumed that the decisional Diffie-Hellman problem is hard in Curve25519 and Ed25519.
+Below are listed some security properties which are to hold for Carrot. Unless other specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[citation](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### Balance recovery security
 
