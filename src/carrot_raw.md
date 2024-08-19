@@ -28,7 +28,7 @@ Carrot supports full view-only wallets that can identify spent outputs (unlike l
 
 ### Janus attack mitigation
 
-Janus attack is a targeted attack that aims to determine if two addresses A, B belong to the same wallet. Janus outputs are crafted in such a way that they appear to the recipient as being received to the wallet address B, while secretly using a key from address A. If the recipient confirms the receipt of the payment, the sender learns that they own both addresses A and B.
+A Janus attack [[citation](https://web.getmonero.org/2019/10/18/subaddress-janus.html)] is a targeted attack that aims to determine if two addresses A, B belong to the same wallet. Janus outputs are crafted in such a way that they appear to the recipient as being received to the wallet address B, while secretly using a key from address A. If the recipient confirms the receipt of the payment, the sender learns that they own both addresses A and B.
 
 Carrot prevents this attack by allowing the recipient to recognize a Janus output.
 
@@ -318,7 +318,7 @@ The amount commitment is constructed as <code>C<sub>a</sub> = k<sub>a</sub> G + 
 
 #### Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key hierarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, which would make a Janus attack pointless.
 
 #### Amount
 
@@ -338,7 +338,7 @@ The enote components are derived from the shared secret keys <code>K<sub>d</sub>
 |<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sup>nm</sup></code>|janus anchor, normal| <code>anchor<sup>nm</sup> = RandBytes(16)</code> |
-|<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| s<sub>ga</sub> \|\| K<sub>s</sub>)</code> |
+|<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
 |<code>k<sub>e</sub></code>|ephemeral privkey| <code>k<sub>e</sub> = KeyDerive2("carrot_sending_key_normal" \|\| anchor<sup>nm</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
@@ -396,7 +396,7 @@ As specified above, these enotes use <code>s<sub>vb</sub></code> as the value fo
 
 #### Special enotes
 
-Special enotes are external self-send enotes in a 2-out transaction. The sender employs different ephemeral pubkey derivations and Janus anchor derivations than a regular external enote.
+Special enotes are external self-send enotes in a 2-out transaction. The sender employs different shared secret derivations and Janus anchor derivations than a regular external enote.
 
 #### Mandatory self-send enote rule
 
@@ -429,7 +429,7 @@ If this enote scan returns successfully, we will be able to recover the address 
 We perform the scan process twice per enote, once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code>.
 
 1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code>
-1. If `vt' ≠ vt'`, then <code><b>ABORT</b></code>
+1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
 1. Let <code>K<sub>d</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| K<sub>d</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
 1. If a coinbase enote, then let `a' = a`, let <code>k<sub>a</sub>' = 1</code>, and skip to step 13
 1. Let <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
@@ -457,7 +457,7 @@ We perform the scan process twice per enote, once with <code>K<sub>d</sub> = Nor
 1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 32
-1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| s<sub>ga</sub> \|\| K<sub>s</sub>)</code>
+1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
 1. If <code>anchor' ≠ anchor<sup>sp</sup></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
 1. Return successfully!
 
@@ -520,7 +520,9 @@ For any <code>K<sub>o</sub></code>, it is computationally intractable to find tw
 
 #### Janus Attack Resistance
 
-A sender cannot construct an enote such that an honest receiver will accept it, and in doing do so, allow the sender to determine that two public addresses share the same <code>k<sub>v</sub></code>, whether it be a main address or subaddress.
+There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
+
+More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>K<sub>d</sub> = NormalizeX(8 r K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
 
 ### Unlinkability
 

@@ -28,7 +28,7 @@ Carrot supports full view-only wallets that can identify spent outputs (unlike l
 
 ### 2.4 Janus attack mitigation
 
-Janus attack is a targeted attack that aims to determine if two addresses A, B belong to the same wallet. Janus outputs are crafted in such a way that they appear to the recipient as being received to the wallet address B, while secretly using a key from address A. If the recipient confirms the receipt of the payment, the sender learns that they own both addresses A and B.
+A Janus attack [[2](https://web.getmonero.org/2019/10/18/subaddress-janus.html)] is a targeted attack that aims to determine if two addresses A, B belong to the same wallet. Janus outputs are crafted in such a way that they appear to the recipient as being received to the wallet address B, while secretly using a key from address A. If the recipient confirms the receipt of the payment, the sender learns that they own both addresses A and B.
 
 Carrot prevents this attack by allowing the recipient to recognize a Janus output.
 
@@ -58,7 +58,7 @@ Payment IDs are confirmed by a cryptographic hash, which gives integrated addres
 
 ### 3.2 Hash functions
 
-The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[2](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
+The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[3](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
 
 * The output length is set to `b` bytes.
 * Hashing is done in sequential mode.
@@ -69,7 +69,7 @@ The function `SecretDerive` is defined as:
 
 <code>SecretDerive(x) = H<sub>32</sub>(x)</code>
 
-The function `Keccak256(x)` refers to the SHA3-256 variant (AKA `r = 1088, c = 512, d = 256`) of the Keccak function [[3](https://keccak.team/keccak.html)].
+The function `Keccak256(x)` refers to the SHA3-256 variant (AKA `r = 1088, c = 512, d = 256`) of the Keccak function [[4](https://keccak.team/keccak.html)].
 
 ### 3.3 Elliptic curves
 
@@ -82,13 +82,13 @@ Both curves are birationally equivalent, so the subgroups <code>𝔾<sub>1</sub>
 
 #### 3.3.1 Curve25519
 
-Curve25519 is used exclusively to serialize the Diffie-Hellman ephemeral pubkey [[4](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] in transactions to match Jamtis behavior.
+Curve25519 is used exclusively to serialize the Diffie-Hellman ephemeral pubkey [[5](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] in transactions to match Jamtis behavior.
 
 Public keys (elements of <code>𝔾<sub>1</sub></code>) are denoted by the capital letter `D` and are serialized as the x-coordinate of the corresponding Curve25519 point. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
 
 #### 3.3.2 Ed25519
 
-The Edwards curve is used for signatures and more complex cryptographic protocols [[5](https://ed25519.cr.yp.to/ed25519-20110926.pdf)]. The following generators are used:
+The Edwards curve is used for signatures and more complex cryptographic protocols [[6](https://ed25519.cr.yp.to/ed25519-20110926.pdf)]. The following generators are used:
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
@@ -282,7 +282,7 @@ Subaddresses are the recommended way to differentiate received enotes to your ac
 
 #### 7.1.1 Unlock time
 
-The `unlock_time` field [[6](https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[7](https://github.com/monero-project/research-lab/issues/78)].
+The `unlock_time` field [[7](https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[8](https://github.com/monero-project/research-lab/issues/78)].
 
 #### 7.1.2 Payment ID
 
@@ -318,7 +318,7 @@ The amount commitment is constructed as <code>C<sub>a</sub> = k<sub>a</sub> G + 
 
 #### 7.2.4 Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the generate-address secret <code>s<sub>ga</sub></code> (or <code>k<sub>v</sub></code> for legacy key hierarchies). Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the secret used to generate subaddresses and thus doesn't need to perform a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, which would make a Janus attack pointless.
 
 #### 7.2.5 Amount
 
@@ -338,7 +338,7 @@ The enote components are derived from the shared secret keys <code>K<sub>d</sub>
 |<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sup>nm</sup></code>|janus anchor, normal| <code>anchor<sup>nm</sup> = RandBytes(16)</code> |
-|<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| s<sub>ga</sub> \|\| K<sub>s</sub>)</code> |
+|<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
 |<code>k<sub>e</sub></code>|ephemeral privkey| <code>k<sub>e</sub> = KeyDerive2("carrot_sending_key_normal" \|\| anchor<sup>nm</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
@@ -396,7 +396,7 @@ As specified above, these enotes use <code>s<sub>vb</sub></code> as the value fo
 
 #### 7.7.2 Special enotes
 
-Special enotes are external self-send enotes in a 2-out transaction. The sender employs different ephemeral pubkey derivations and Janus anchor derivations than a regular external enote.
+Special enotes are external self-send enotes in a 2-out transaction. The sender employs different shared secret derivations and Janus anchor derivations than a regular external enote.
 
 #### 7.7.3 Mandatory self-send enote rule
 
@@ -429,7 +429,7 @@ If this enote scan returns successfully, we will be able to recover the address 
 We perform the scan process twice per enote, once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code>.
 
 1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code>
-1. If `vt' ≠ vt'`, then <code><b>ABORT</b></code>
+1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
 1. Let <code>K<sub>d</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| K<sub>d</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
 1. If a coinbase enote, then let `a' = a`, let <code>k<sub>a</sub>' = 1</code>, and skip to step 13
 1. Let <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
@@ -457,7 +457,7 @@ We perform the scan process twice per enote, once with <code>K<sub>d</sub> = Nor
 1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 32
-1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| s<sub>ga</sub> \|\| K<sub>s</sub>)</code>
+1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
 1. If <code>anchor' ≠ anchor<sup>sp</sup></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
 1. Return successfully!
 
@@ -508,11 +508,11 @@ If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <
 
 **Background**
 
-The burning bug [[8](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
+The burning bug [[9](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
 
-An initial patch [[9](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
+An initial patch [[10](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
 
-The original Jamtis addressing proposal [[10](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] by @tevador and the *Guaranteed Address* [[11](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
+The original Jamtis addressing proposal [[11](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] by @tevador and the *Guaranteed Address* [[12](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
 
 **Statement**
 
@@ -520,7 +520,9 @@ For any <code>K<sub>o</sub></code>, it is computationally intractable to find tw
 
 #### 9.1.5 Janus Attack Resistance
 
-A sender cannot construct an enote such that an honest receiver will accept it, and in doing do so, allow the sender to determine that two public addresses share the same <code>k<sub>v</sub></code>, whether it be a main address or subaddress.
+There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
+
+More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>K<sub>d</sub> = NormalizeX(8 r K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
 
 ### 9.2 Unlinkability
 
@@ -591,6 +593,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 ## 11. References
 
 1. https://github.com/monero-project/research-lab/issues/7
+1. https://web.getmonero.org/2019/10/18/subaddress-janus.html
 1. https://eprint.iacr.org/2013/322.pdf
 1. https://keccak.team/keccak.html
 1. https://cr.yp.to/ecdh/curve25519-20060209.pdf
