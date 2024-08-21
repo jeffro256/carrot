@@ -427,7 +427,7 @@ Note: Legacy wallets use scalar multiplication in <code>𝔾<sub>2</sub></code> 
 
 If this enote scan returns successfully, we will be able to recover the address spend pubkey, amount, and PID. Additionally, a successful return guarantees that A) the enote is uniquely addressed to our account, B) Janus attacks are mitigated, and C) burning bug attacks are mitigated. Note, however, that a successful return does *NOT* guarantee that the enote is spendable (i.e. that we will be able to recover `x, y` such that <code>K<sub>o</sub> = x G + y T</code>).
 
-We perform the scan process twice per enote, once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code>.
+We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code> if using the new key hierarchy.
 
 1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code>
 1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
@@ -445,6 +445,7 @@ We perform the scan process twice per enote, once with <code>K<sub>d</sub> = Nor
 1. Let <code>k<sub>t</sub><sup>o</sup>' = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
 1. Let <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
+1. If <code>K<sub>d</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 33
 1. Let <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Set <code>pid' = pid<sub>enc</sub> ⊕ m<sub>pid</sub></code>
 1. Let <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
@@ -453,11 +454,11 @@ We perform the scan process twice per enote, once with <code>K<sub>d</sub> = Nor
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
 1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
-1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 32
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Set `pid' = nullpid`
 1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
-1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 32
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
 1. If <code>anchor' ≠ anchor<sup>sp</sup></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
 1. Return successfully!
