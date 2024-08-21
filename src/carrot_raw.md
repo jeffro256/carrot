@@ -374,10 +374,10 @@ Then, <code>K<sub>d</sub><sup>ctx</sup></code> is derived as <code>K<sub>d</sub>
 
 Here `input_context` is defined as:
 
-| transaction type | `input_context`       |
-|----------------- |---------------------- |
-| coinbase         | block height          |
-| non-coinbase     | first spent key image |
+| transaction type | `input_context`                                   |
+|----------------- |-------------------------------------------------- |
+| coinbase         | <code>"C" \|\| IntToBytes256(block height)</code> |
+| non-coinbase     | <code>"N" \|\| first spent key image</code>       |
 
 The purpose of `input_context` is to make <code>K<sub>d</sub><sup>ctx</sup></code> unique for every transaction. This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. This aspect helps protect against the burning bug.
 
@@ -485,7 +485,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless other specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[citation](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
+Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[citation](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### Balance recovery security
 
@@ -521,8 +521,6 @@ The original Jamtis [[citation](https://gist.github.com/tevador/50160d160d24cfc6
 **Statements**
 
 For any <code>K<sub>o</sub></code>, it is computationally intractable to find two unique values of `input_context` such that an honest receiver will determine both enotes to be spendable. Recall that spendability is determined as whether <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> is an address spend pubkey that we can normally derive from our account secrets.
-
-Additionally, assuming that <code>H<sub>p</sub><sup>2</sup></code> is a secure hash-to-point function, it is computationally intractable, for a given integer `h`, to find an ed25519 point `K = x G` such that <code>x H<sub>p</sub><sup>2</sup>(K) == IntToBytes256(h)</code> and `x ≠ 0`. Here, `==` is a byte-wise comparison operator against the serialized point. This statement ensures that we can use "raw" (AKA un-hashed) values of the key image and block heights without a key image creator being able to find a "preimage" of the `input_context` of a coinbase transaction.
 
 #### Janus Attack Resistance
 
