@@ -50,8 +50,9 @@ Payment IDs are confirmed by a cryptographic hash, which gives integrated addres
 
 1. The function `BytesToInt256(x)` deserializes a 256-bit little-endian integer from a 32-byte input.
 1. The function `BytesToInt512(x)` deserializes a 512-bit little-endian integer from a 64-byte input.
-1. The function `IntToBytes8(x)` serializes an integer into a little-endian encoded 8-byte output.
-1. The function `IntToBytes4(x)` serializes an integer into a little-endian encoded 4-byte output.
+1. The function `IntToBytes32(x)` serializes an integer into a little-endian encoded 4-byte output.
+1. The function `IntToBytes64(x)` serializes an integer into a little-endian encoded 8-byte output.
+1. The function `IntToBytes256(x)` serializes an integer into a little-endian encoded 32-byte output.
 1. The function `RandBytes(x)` generates a random x-byte string.
 1. Concatenation is denoted by `||`.
 1. Bit-wise XOR (exclusive-or) is denoted by `⊕`.
@@ -254,7 +255,7 @@ Under the legacy key hierarchy, the two public keys of a subaddress are construc
 * <code>K<sub>s</sub><sup>j</sup> = K<sub>s</sub> + k<sub>subext</sub><sup>j</sup> G</code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>v</sub> K<sub>s</sub><sup>j</sup></code>
 
-Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes8(8) \|\| k<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires View-Received access to the wallet.
+Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires View-Received access to the wallet.
 
 #### Subaddress keys (New Hierarchy)
 
@@ -267,8 +268,8 @@ Where address private key <code>k<sub>a</sub><sup>j</sup></code> are defined as 
 
 | Symbol | Name | Definition |
 |-------------------------- |-------------------------- |------------------------------|
-|<code>k<sub>a</sub><sup>j</sup></code> | address private key  | <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code> |
-| <code>s<sub>gen</sub><sup>j</sup></code> | address index generators | <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("jamtis_address_index_generator" \|\| s<sub>ga</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code> |
+|<code>k<sub>a</sub><sup>j</sup></code> | address private key  | <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code> |
+| <code>s<sub>gen</sub><sup>j</sup></code> | address index generators | <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("jamtis_address_index_generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code> |
 
 The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>.
 
@@ -373,12 +374,12 @@ Then, <code>K<sub>d</sub><sup>ctx</sup></code> is derived as <code>K<sub>d</sub>
 
 Here `input_context` is defined as:
 
-| transaction type | `input_context` |
-|------------------|---------------------------------|
-| coinbase         | block height                    |
-| non-coinbase     | sorted list of spent key images |
+| transaction type | `input_context`       |
+|----------------- |---------------------- |
+| coinbase         | block height          |
+| non-coinbase     | first spent key image |
 
-The purpose of `input_context` is to make <code>K<sub>d</sub><sup>ctx</sup></code> unique for every transaction. This helps protect against the burning bug.
+The purpose of `input_context` is to make <code>K<sub>d</sub><sup>ctx</sup></code> unique for every transaction. This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. This aspect helps protect against the burning bug.
 
 ### Janus outputs
 
@@ -467,13 +468,13 @@ An enote is spendable if the computed nominal address spend pubkey <code>K<sub>s
 
 #### Legacy key hierarchy key images
 
-If `j≠0`, then let <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes8(8) \|\| k<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>subext</sub><sup>j</sup> = 0</code>.
+If `j≠0`, then let <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>subext</sub><sup>j</sup> = 0</code>.
 
 The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>subext</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
 #### New key hierarchy key images
 
-If `j≠0`, then let <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes4(j<sub>major</sub>) \|\| IntToBytes4(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
+If `j≠0`, then let <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
 
 The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>a</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
@@ -516,9 +517,11 @@ An initial patch [[citation](https://github.com/monero-project/monero/pull/4438/
 
 The original Jamtis [[citation](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] proposal by @tevador and the *Guaranteed Address* [[citation](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
 
-**Statement**
+**Statements**
 
 For any <code>K<sub>o</sub></code>, it is computationally intractable to find two unique values of `input_context` such that an honest receiver will determine both enotes to be spendable. Recall that spendability is determined as whether <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> is an address spend pubkey that we can normally derive from our account secrets.
+
+Additionally, assuming that <code>H<sub>p</sub><sup>2</sup></code> is a secure hash-to-point function, it is computationally intractable, for a given integer `h`, to find an ed25519 point `K = x G` such that <code>x H<sub>p</sub><sup>2</sup>(K) == IntToBytes256(h)</code> and `x ≠ 0`. Here, `==` is a byte-wise comparison operator against the serialized point. This statement ensures that we can use "raw" (AKA un-hashed) values of the key image and block heights without a key image creator being able to find a "preimage" of the `input_context` of a coinbase transaction.
 
 #### Janus Attack Resistance
 
