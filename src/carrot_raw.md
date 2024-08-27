@@ -36,6 +36,16 @@ A Janus attack [[citation](https://web.getmonero.org/2019/10/18/subaddress-janus
 
 Carrot prevents this attack by allowing the recipient to recognize a Janus output.
 
+### Stateless burning bug mitigation
+
+The burning bug [[citation](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
+
+An initial patch [[citation](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
+
+The original Jamtis [[citation](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] proposal by @tevador and the *Guaranteed Address* [[citation](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. These schemes somehow bind the output pubkey to an "input context" value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with a given output pubkey to be spendable for a single transaction, avoiding the burning bug without ever having to maintain a complete scan state.
+
+Carrot prevents this attack statelessly in the same manner.
+
 ### Address-conditional forward secrecy
 
 As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), as long as the observer does not know receiver's addresses.
@@ -74,7 +84,7 @@ The function `SecretDerive` is defined as:
 
 <code>SecretDerive(x) = H<sub>32</sub>(x)</code>
 
-The function `Keccak256(x)` refers to the SHA3-256 variant (AKA `r = 1088, c = 512, d = 256`) of the Keccak function [[citation](https://keccak.team/keccak.html)].
+The function `Keccak256(x)` refers to the Keccak function [[citation](https://keccak.team/keccak.html)] parameterized with `r = 1088, c = 512, d = 256`.
 
 ### Elliptic curves
 
@@ -517,16 +527,6 @@ If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <
 
 #### Burning Bug Resistance
 
-**Background**
-
-The burning bug [[citation](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
-
-An initial patch [[citation](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
-
-The original Jamtis [[citation](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] proposal by @tevador and the *Guaranteed Address* [[citation](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
-
-**Statements**
-
 For any <code>K<sub>o</sub></code>, it is computationally intractable to find two unique values of `input_context` such that an honest receiver will determine both enotes to be spendable. Recall that spendability is determined as whether <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> is an address spend pubkey that we can normally derive from our account secrets.
 
 #### Janus Attack Resistance
@@ -600,6 +600,37 @@ The remaining Carrot enote components are indistinguishable from random byte str
 Special thanks to everyone who commented and provided feedback on the original [Jamtis gist](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024). Many of the ideas were incorporated in this document.
 
 A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT specifications, which were the foundation of this document, containing most of the transaction protocol math.
+
+## Glossary
+
+- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[citation](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
+- *Burning Bug Attack* - An attack where an exploiter duplicates an output pubkey and tricks the recipient into accepting both, even though only one can be spent
+- *Coinbase Transaction* - A transaction which has no key images, and plaintext integer amounts instead of amount commitments in its outputs
+- *Cryptonote* - A cryptocurrency consensus protocol and addressing scheme which was the foundation for Monero's ledger interactions initially
+- *Cryptonote Address* - An address in the form described in the Cryptonote v2 whitepaper
+- *Enote* - A transaction output and its associated data unique to that transaction output
+- *Ephemeral Public Key* - An elliptic curve point associated to transaction outputs in order to hide enote details through a Diffie-Hellman key exchange
+- *External Enote* - An enote which was constructed by performing an asymmetric Elliptic Curve Diffie-Hellman key exchange against an address, main or subaddress
+- *FCMP++* - A proposed cryptocurrency consensus protocol to upgrade Monero's RingCT consensus protocol
+- *Forward Secrecy* - The property of a cryptographic construction that information is hidden from an observer that can efficiently solve the Discrete Logarithm Problem 
+- *Indistinguishability* - The property of multiple cryptographic constructions that the public values posted cannot be determined to the result of any single construction
+- *Input Content* - A unique value associated to each transaction used in the Carrot address protocol derivations to mitigate burning bug attacks
+- *Integrated Address* - A main address which additionally contains a payment ID
+- *Internal Enote* - An enote which was constructed using a symmetric shared secret, typically the view-balance secret
+- *Janus Anchor* - An enote component whose purpose is two fold in mitigating Janus attacks: act as an entropy source for deriving the ephemeral private key or act as an HMAC validating the ephemeral pubkey
+- *Janus Attack* - An attack where an exploiter constructs an enote partially using two different addresses they suspect to belong to the same user such that the confirmation of that payment confirms the addresses are actually related
+- *Key Image* - An elliptic curve point emitted during a Rerandomizable RingCT spend proof, used during balance recovery to determine whether an enote has been spent yet
+- *Ledger* - An immutable, append-only list of transactions which is the shared medium of data exchange for different participants of the network
+- *Main Address* - same as *Cryptonote Address*
+- *Monero* - A payment network, along with a cryptocurrency *XMR*, that historically utilizes a collection of consensus protocols on its ledger, namely: Cryptonote, RingCT, and FCMP++
+- *Payment ID* - An 8 byte array included with transaction data used to differentiate senders
+- *Rerandomizable RingCT* - An abstraction of FCMP++ defined in this document that allows the formalization of different security properties without knowledge of the underlying proving system
+- *RingCT* - A cryptocurrency consensus protocol that iterated on Cryptonote by introducing hidden amounts by way of amount commitments
+- *Self-send Enote* - An enote constructed by wallet intended to be received by the same wallet, either internal or external
+- *Subaddress* - An address form introduced by Monero contributors which allows for a single wallet to generate an arbitrary number of unlinkable addresses without affecting scanning speed
+- *Transaction* - An atomic modification to the ledger containing key images, transaction outputs, and other unstructured data
+- *Transaction Output* - A distinct tuple of an elliptic curve point and amount commitment or plaintext amount which is contained in a list in a transaction
+- *View Tag* - A small enote component, calculated as a partial hash of the sender-receiver shared key, which is checked early in the balance recovery process to optimize scanning performance
 
 ## References
 

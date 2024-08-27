@@ -36,15 +36,25 @@ A Janus attack [[4](https://web.getmonero.org/2019/10/18/subaddress-janus.html)]
 
 Carrot prevents this attack by allowing the recipient to recognize a Janus output.
 
-### 2.5 Address-conditional forward secrecy
+### 2.5 Stateless burning bug mitigation
+
+The burning bug [[5](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
+
+An initial patch [[6](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
+
+The original Jamtis [[7](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] proposal by @tevador and the *Guaranteed Address* [[8](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. These schemes somehow bind the output pubkey to an "input context" value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with a given output pubkey to be spendable for a single transaction, avoiding the burning bug without ever having to maintain a complete scan state.
+
+Carrot prevents this attack statelessly in the same manner.
+
+### 2.6 Address-conditional forward secrecy
 
 As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), as long as the observer does not know receiver's addresses.
 
-### 2.6 Internal forward secrecy
+### 2.7 Internal forward secrecy
 
 Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), even if the observer has knowledge of the receiver's address.
 
-### 2.7 Payment ID confirmation
+### 2.8 Payment ID confirmation
 
 Payment IDs are confirmed by a cryptographic hash, which gives integrated address payment processors better guarantees, provides better UX, and allows many-output batched transactions to unambiguously include an integrated address destination.
 
@@ -63,7 +73,7 @@ Payment IDs are confirmed by a cryptographic hash, which gives integrated addres
 
 ### 3.2 Hash functions
 
-The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[5](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
+The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[9](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
 
 * The output length is set to `b` bytes.
 * Hashing is done in sequential mode.
@@ -74,7 +84,7 @@ The function `SecretDerive` is defined as:
 
 <code>SecretDerive(x) = H<sub>32</sub>(x)</code>
 
-The function `Keccak256(x)` refers to the SHA3-256 variant (AKA `r = 1088, c = 512, d = 256`) of the Keccak function [[6](https://keccak.team/keccak.html)].
+The function `Keccak256(x)` refers to the Keccak function [[10](https://keccak.team/keccak.html)] parameterized with `r = 1088, c = 512, d = 256`.
 
 ### 3.3 Elliptic curves
 
@@ -87,13 +97,13 @@ Both curves are birationally equivalent, so the subgroups <code>𝔾<sub>1</sub>
 
 #### 3.3.1 Curve25519
 
-The Montgomery curve Curve25519 [[7](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used.
+The Montgomery curve Curve25519 [[11](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used.
 
 Elements of <code>𝔾<sub>1</sub></code> are denoted by <code>D<sub>subscript</sub><sup>superscript</sup></code>, and are serialized as their x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
 
 #### 3.3.2 Ed25519
 
-The twisted Edwards curve Ed25519 [[8](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
+The twisted Edwards curve Ed25519 [[12](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
@@ -118,7 +128,7 @@ Additionally, we define the function `NormalizeX(K)` that takes an Ed25519 point
 
 #### 3.3.4 Private keys
 
-Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. These keys are not "clamped" [[9](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/)] like they would be in the X25519 [[10](https://cr.yp.to/ecdh.html)] protocol. Unfortunately, this somewhat slows down implementations of Curve25519 scalar-point multiplications, but it must be this way for backwards compatibility and on-chain indistinguishability. Private keys are derived using one of the two following functions:
+Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. These keys are not "clamped" [[13](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/)] like they would be in the X25519 [[14](https://cr.yp.to/ecdh.html)] protocol. Unfortunately, this somewhat slows down implementations of Curve25519 scalar-point multiplications, but it must be this way for backwards compatibility and on-chain indistinguishability. Private keys are derived using one of the two following functions:
 
 1. <code>ScalarDerive(x) = BytesToInt512(H<sub>64</sub>(x)) mod ℓ</code>
 1. <code>ScalarDeriveLegacy(x) = BytesToInt256(Keccak256(x)) mod ℓ</code>
@@ -290,7 +300,7 @@ Subaddresses are the recommended way to differentiate received enotes to your ac
 
 #### 7.1.1 Unlock time
 
-The `unlock_time` field [[11](https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[12](https://github.com/monero-project/research-lab/issues/78)].
+The `unlock_time` field [[15](https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[16](https://github.com/monero-project/research-lab/issues/78)].
 
 #### 7.1.2 Payment ID
 
@@ -492,7 +502,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## 9. Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[13](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
+Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[17](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### 9.1 Balance recovery security
 
@@ -516,16 +526,6 @@ If an honest receiver recovers `x` and `y` for an enote such that <code>K<sub>o<
 If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <code>C<sub>a</sub> = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>k<sub>e</sub></code> will also be able to find `z`.
 
 #### 9.1.4 Burning Bug Resistance
-
-**Background**
-
-The burning bug [[14](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
-
-An initial patch [[15](https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c)] was introduced secretly to catch when such an attempted attack occurred. However, this patch did not attempt to recover gracefully and instead simply stopped the wallet process with an error message. Further iterations of handling this bug automatically discarded all instances of duplicate output pubkeys which didn't have the greatest amount. However, all instances of burning bug handling in Monero Core require a complete view of all scanning history up to the current chain tip, which makes the workarounds somewhat fragile.
-
-The original Jamtis [[16](https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024)] proposal by @tevador and the *Guaranteed Address* [[17](https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100)] proposal by @kayabaNerve were some of the first examples of addressing schemes where attempting a burn in this manner is inherently computationally intractable. Much like Carrot, these schemes somehow bind the output pubkey <code>K<sub>o</sub></code> to an `input_context` value, which is unique for every transaction. Thus, the receiver will only ever correctly determine an enote with output pubkey <code>K<sub>o</sub></code> to be spendable for a single value of `input_context`, avoiding the burning bug without ever having to maintain a complete scan state.
-
-**Statements**
 
 For any <code>K<sub>o</sub></code>, it is computationally intractable to find two unique values of `input_context` such that an honest receiver will determine both enotes to be spendable. Recall that spendability is determined as whether <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> is an address spend pubkey that we can normally derive from our account secrets.
 
@@ -601,12 +601,47 @@ Special thanks to everyone who commented and provided feedback on the original [
 
 A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT specifications, which were the foundation of this document, containing most of the transaction protocol math.
 
-## 11. References
+## 11. Glossary
+
+- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[18](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
+- *Burning Bug Attack* - An attack where an exploiter duplicates an output pubkey and tricks the recipient into accepting both, even though only one can be spent
+- *Coinbase Transaction* - A transaction which has no key images, and plaintext integer amounts instead of amount commitments in its outputs
+- *Cryptonote* - A cryptocurrency consensus protocol and addressing scheme which was the foundation for Monero's ledger interactions initially
+- *Cryptonote Address* - An address in the form described in the Cryptonote v2 whitepaper
+- *Enote* - A transaction output and its associated data unique to that transaction output
+- *Ephemeral Public Key* - An elliptic curve point associated to transaction outputs in order to hide enote details through a Diffie-Hellman key exchange
+- *External Enote* - An enote which was constructed by performing an asymmetric Elliptic Curve Diffie-Hellman key exchange against an address, main or subaddress
+- *FCMP++* - A proposed cryptocurrency consensus protocol to upgrade Monero's RingCT consensus protocol
+- *Forward Secrecy* - The property of a cryptographic construction that information is hidden from an observer that can efficiently solve the Discrete Logarithm Problem 
+- *Indistinguishability* - The property of multiple cryptographic constructions that the public values posted cannot be determined to the result of any single construction
+- *Input Content* - A unique value associated to each transaction used in the Carrot address protocol derivations to mitigate burning bug attacks
+- *Integrated Address* - A main address which additionally contains a payment ID
+- *Internal Enote* - An enote which was constructed using a symmetric shared secret, typically the view-balance secret
+- *Janus Anchor* - An enote component whose purpose is two fold in mitigating Janus attacks: act as an entropy source for deriving the ephemeral private key or act as an HMAC validating the ephemeral pubkey
+- *Janus Attack* - An attack where an exploiter constructs an enote partially using two different addresses they suspect to belong to the same user such that the confirmation of that payment confirms the addresses are actually related
+- *Key Image* - An elliptic curve point emitted during a Rerandomizable RingCT spend proof, used during balance recovery to determine whether an enote has been spent yet
+- *Ledger* - An immutable, append-only list of transactions which is the shared medium of data exchange for different participants of the network
+- *Main Address* - same as *Cryptonote Address*
+- *Monero* - A payment network, along with a cryptocurrency *XMR*, that historically utilizes a collection of consensus protocols on its ledger, namely: Cryptonote, RingCT, and FCMP++
+- *Payment ID* - An 8 byte array included with transaction data used to differentiate senders
+- *Rerandomizable RingCT* - An abstraction of FCMP++ defined in this document that allows the formalization of different security properties without knowledge of the underlying proving system
+- *RingCT* - A cryptocurrency consensus protocol that iterated on Cryptonote by introducing hidden amounts by way of amount commitments
+- *Self-send Enote* - An enote constructed by wallet intended to be received by the same wallet, either internal or external
+- *Subaddress* - An address form introduced by Monero contributors which allows for a single wallet to generate an arbitrary number of unlinkable addresses without affecting scanning speed
+- *Transaction* - An atomic modification to the ledger containing key images, transaction outputs, and other unstructured data
+- *Transaction Output* - A distinct tuple of an elliptic curve point and amount commitment or plaintext amount which is contained in a list in a transaction
+- *View Tag* - A small enote component, calculated as a partial hash of the sender-receiver shared key, which is checked early in the balance recovery process to optimize scanning performance
+
+## 12. References
 
 1. https://github.com/monero-project/research-lab/blob/master/whitepaper/whitepaper.pdf
 1. https://www.getmonero.org/resources/moneropedia/paymentid.html
 1. https://github.com/monero-project/research-lab/issues/7
 1. https://web.getmonero.org/2019/10/18/subaddress-janus.html
+1. https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html
+1. https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c
+1. https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024
+1. https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100
 1. https://eprint.iacr.org/2013/322.pdf
 1. https://keccak.team/keccak.html
 1. https://cr.yp.to/ecdh/curve25519-20060209.pdf
@@ -616,7 +651,4 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://www.getmonero.org/resources/moneropedia/unlocktime.html
 1. https://github.com/monero-project/research-lab/issues/78
 1. https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf
-1. https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html
-1. https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c
-1. https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024
-1. https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100
+1. https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html
