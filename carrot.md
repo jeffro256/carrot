@@ -6,7 +6,7 @@ Carrot (Cryptonote Address on Rerandomizable-RingCT-Output Transactions) is an a
 
 ### 1.1 Cryptonote Addresses, Integrated Addresses, and Subaddresses
 
-Cryptonote [[1](https://github.com/monero-project/research-lab/blob/master/whitepaper/whitepaper.pdf)] addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity.
+Cryptonote [[1](https://github.com/monero-project/research-lab/blob/master/whitepaper/whitepaper.pdf)] addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs are unlinkable regardless of the number of times an address is reused, and without requiring interactivity.
 
 In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs* [[2](https://www.getmonero.org/resources/moneropedia/paymentid.html)], an arbitrary 32 byte string attached to transactions, was the initial solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses, and shortening them to 8 bytes. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy.
 
@@ -90,16 +90,16 @@ The function `Keccak256(x)` refers to the Keccak function [[10](https://keccak.t
 
 Two elliptic curves are used in this specification:
 
-1. **Curve25519** - a Montgomery curve. Points on this curve include a cyclic subgroup <code>𝔾<sub>1</sub></code>.
-1. **Ed25519** - a twisted Edwards curve. Points on this curve include a cyclic subgroup <code>𝔾<sub>2</sub></code>.
+1. **Curve25519** - a Montgomery curve. Points on this curve include a cyclic subgroup <code>𝔾<sub>M</sub></code>.
+1. **Ed25519** - a twisted Edwards curve. Points on this curve include a cyclic subgroup <code>𝔾<sub>E</sub></code>.
 
-Both curves are birationally equivalent, so the subgroups <code>𝔾<sub>1</sub></code> and <code>𝔾<sub>2</sub></code> have the same prime order <code>ℓ = 2<sup>252</sup> + 27742317777372353535851937790883648493</code>. The total number of points on each curve is `8ℓ`.
+Both curves are birationally equivalent, so the subgroups <code>𝔾<sub>M</sub></code> and <code>𝔾<sub>E</sub></code> have the same prime order <code>ℓ = 2<sup>252</sup> + 27742317777372353535851937790883648493</code>. The total number of points on each curve is `8ℓ`.
 
 #### 3.3.1 Curve25519
 
 The Montgomery curve Curve25519 [[11](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used.
 
-Elements of <code>𝔾<sub>1</sub></code> are denoted by <code>D<sub>subscript</sub><sup>superscript</sup></code>, and are serialized as their x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
+Elements of <code>𝔾<sub>M</sub></code> are denoted by <code>D<sub>subscript</sub><sup>superscript</sup></code>, and are serialized as their x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
 
 #### 3.3.2 Ed25519
 
@@ -107,20 +107,20 @@ The twisted Edwards curve Ed25519 [[12](https://ed25519.cr.yp.to/ed25519-2011092
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
-| `G` | generator of <code>𝔾<sub>2</sub></code> | `5866666666666666666666666666666666666666666666666666666666666666`
+| `G` | generator of <code>𝔾<sub>E</sub></code> | `5866666666666666666666666666666666666666666666666666666666666666`
 | `H` | <code>H<sub>p</sub><sup>1</sup>(G)</code> | `8b655970153799af2aeadc9ff1add0ea6c7251d54154cfa92c173a0dd39c1f94`
 | `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero generator T"))</code> | `966fc66b82cd56cf85eaec801c42845f5f408878d1561e00d3d7ded2794d094f`
 
 Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on Ed25519.
 
-Elements of <code>𝔾<sub>2</sub></code> are denoted by <code>K<sub>subscript</sub><sup>superscript</sup></code> and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>K = k G</code>.
+Elements of <code>𝔾<sub>E</sub></code> are denoted by <code>K<sub>subscript</sub><sup>superscript</sup></code> and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>K = k G</code>.
 
-#### 3.3.3 Public key conversion
+#### 3.3.3 Point conversion
 
-We define two functions that can transform public keys between the two curves:
+We define two functions that can transform points between the two curves:
 
-1. `ConvertPubkey1(D)` takes a Curve25519 public key `D` and outputs the corresponding Ed25519 public key `K` with an even-valued `x` coordinate.
-2. `ConvertPubkey2(K)` takes an Ed25519 public key `K` and outputs the corresponding Curve25519 public key `D`.
+1. `ConvertPubkey1(D)` takes a Curve25519 point `D` and outputs the corresponding Ed25519 point `K` with an even-valued `x` coordinate.
+2. `ConvertPubkey2(K)` takes an Ed25519 point `K` and outputs the corresponding Curve25519 point `D`.
 
 The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the Ed25519 y-coordinate and `u` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered.
 
@@ -143,7 +143,7 @@ Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a<
 
 ### 4.2 Spending a transaction output
 
-To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA *"linking tag"* or *"nullifier"*) <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. All key images must be in the prime order subgroup <code>𝔾<sub>2</sub></code>.
+To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA *"linking tag"* or *"nullifier"*) <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. All key images must be in the prime order subgroup <code>𝔾<sub>E</sub></code>.
 
 ### 4.3 Transaction model
 
@@ -435,8 +435,6 @@ Miners should continue the practice of only allowing main addresses for the dest
 ### 7.9 Scanning performance
 
 When scanning for received enotes, legacy wallets need to calculate <code>NormalizeX(8 k<sub>v</sub> ConvertPubKey1(D<sub>e</sub>))</code>. The operation <code>ConvertPubKey1(D<sub>e</sub>)</code> can be done during point decompression for free. The `NormalizeX()` function simply drops the x coordinate. The scanning performance for legacy wallets is therefore the same as in the old protocol.
-
-Note: Legacy wallets use scalar multiplication in <code>𝔾<sub>2</sub></code> because the legacy view key <code>k<sub>v</sub></code> might be larger than 2<sup>252</sup>, which is not supported in the Montgomery ladder.
 
 ## 8. Balance recovery
 
