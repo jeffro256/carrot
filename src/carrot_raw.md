@@ -6,7 +6,11 @@ Carrot (Cryptonote Address on Rerandomizable-RingCT-Output Transactions) is an a
 
 ### Cryptonote Addresses, Integrated Addresses, and Subaddresses
 
-Cryptonote addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity. In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs*, an arbitrary 8 byte string attached to transactions, was the initial solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy. In 2016, Monero iterated even further by introducing *subaddresses* [[citation](https://github.com/monero-project/research-lab/issues/7)], an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
+Cryptonote [[citation](https://github.com/monero-project/research-lab/blob/master/whitepaper/whitepaper.pdf)] addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs have unlinkable public keys regardless of the number of times an address is reused, and without requiring interactivity.
+
+In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs* [[citation](https://www.getmonero.org/resources/moneropedia/paymentid.html)], an arbitrary 32 byte string attached to transactions, was the initial solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses, and shortening them to 8 bytes. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy.
+
+In 2016, Monero iterated even further by introducing *subaddresses* [[citation](https://github.com/monero-project/research-lab/issues/7)], an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
 
 ### FCMP++
 
@@ -83,13 +87,13 @@ Both curves are birationally equivalent, so the subgroups <code>𝔾<sub>1</sub>
 
 #### Curve25519
 
-Curve25519 is used exclusively to serialize the Diffie-Hellman ephemeral pubkey [[citation](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] in transactions to match Jamtis behavior.
+The Montgomery curve Curve25519 [[citation](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used.
 
-Public keys (elements of <code>𝔾<sub>1</sub></code>) are denoted by the capital letter `D` and are serialized as the x-coordinate of the corresponding Curve25519 point. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
+Elements of <code>𝔾<sub>1</sub></code> are denoted by <code>D<sub>subscript</sub><sup>superscript</sup></code>, and are serialized as their x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
 
 #### Ed25519
 
-The Edwards curve is used for signatures and more complex cryptographic protocols [[citation](https://ed25519.cr.yp.to/ed25519-20110926.pdf)]. The following generators are used:
+The twisted Edwards curve Ed25519 [[citation](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
@@ -99,12 +103,7 @@ The Edwards curve is used for signatures and more complex cryptographic protocol
 
 Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on Ed25519.
 
-Private keys for Ed25519 are 32-byte integers denoted by a lowercase letter `k`. They are generated using one of the two following functions:
-
-1. <code>KeyDerive2(x) = BytesToInt512(H<sub>64</sub>(x)) mod ℓ</code>
-1. <code>KeyDerive2Legacy(x) = BytesToInt256(Keccak256(x)) mod ℓ</code>
-
-Public keys (elements of <code>𝔾<sub>2</sub></code>) are denoted by the capital letter `K` and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>K = k G</code>.
+Elements of <code>𝔾<sub>2</sub></code> are denoted by <code>K<sub>subscript</sub><sup>superscript</sup></code> and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>K = k G</code>.
 
 #### Public key conversion
 
@@ -116,6 +115,13 @@ We define two functions that can transform public keys between the two curves:
 The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the Ed25519 y-coordinate and `u` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered.
 
 Additionally, we define the function `NormalizeX(K)` that takes an Ed25519 point `K` and returns `K` if its `x` coordinate is even or `-K` if its `x` coordinate is odd.
+
+#### Private keys
+
+Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. These keys are not "clamped" [[citation](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/)] like they would be in the X25519 [[citation](https://cr.yp.to/ecdh.html)] protocol. Unfortunately, this somewhat slows down implementations of Curve25519 scalar-point multiplications, but it must be this way for backwards compatibility and on-chain indistinguishability. Private keys are derived using one of the two following functions:
+
+1. <code>ScalarDerive(x) = BytesToInt512(H<sub>64</sub>(x)) mod ℓ</code>
+1. <code>ScalarDeriveLegacy(x) = BytesToInt256(Keccak256(x)) mod ℓ</code>
 
 ## Rerandomizable RingCT abstraction
 
@@ -158,7 +164,7 @@ s_m (master secret)
 | Key | Name | Derivation | Used to |
 |-----|------|------------|---------|
 |<code>k<sub>s</sub></code> | spend key | <code>k<sub>s</sub> = BytesToInt256(s<sub>m</sub>) mod ℓ</code> | generate key images and spend enotes                 |
-|<code>k<sub>v</sub></code> | view key  | <code>k<sub>v</sub> = KeyDerive2Legacy(k<sub>s</sub>)</code>    | find and decode received enotes, generate addresses |
+|<code>k<sub>v</sub></code> | view key  | <code>k<sub>v</sub> = ScalarDeriveLegacy(k<sub>s</sub>)</code>    | find and decode received enotes, generate addresses |
 
 ### New key hierarchy
 
@@ -181,7 +187,7 @@ s_m (master secret)
      |
      |
      |
-     +- k_v (view key)
+     +- k_v (incoming view key)
      |
      |
      |
@@ -190,14 +196,15 @@ s_m (master secret)
 
 | Key | Name | Derivation | Used to |
 |-----|------|------------|-------|
-|<code>k<sub>ps</sub></code> | prove-spend key         | <code>k<sub>ps</sub> = KeyDerive2("jamtis_prove_spend_key" \|\| s<sub>m</sub>)</code>                  | spend enotes |
-|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = KeyDerive2("jamtis_generate_image_key" \|\| s<sub>vb</sub>)</code>              | generate key images |
-|<code>k<sub>v</sub></code>  | view key                | <code>k<sub>v</sub> = KeyDerive2("carrot_view_key" \|\| s<sub>vb</sub>)</code>                         | find and decode received enotes |
+|<code>k<sub>ps</sub></code> | prove-spend key         | <code>k<sub>ps</sub> = ScalarDerive("jamtis_prove_spend_key" \|\| s<sub>m</sub>)</code>                  | spend enotes |
+|<code>s<sub>vb</sub></code> | view-balance secret     | <code>s<sub>vb</sub> = SecretDerive("jamtis_view_balance_secret" \|\| s<sub>m</sub>)</code>              | find and decode received and outgoing enotes |
+|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("jamtis_generate_image_key" \|\| s<sub>vb</sub>)</code>              | generate key images |
+|<code>k<sub>v</sub></code>  | view key                | <code>k<sub>v</sub> = ScalarDerive("carrot_view_key" \|\| s<sub>vb</sub>)</code>                         | find and decode received enotes |
 |<code>s<sub>ga</sub></code> | generate-address secret | <code>s<sub>ga</sub> = SecretDerive</sub>("jamtis_generate_address_secret" \|\| s<sub>vb</sub>)</code> | generate addresses |
 
 ### New wallet public keys
 
-There are 2 global wallet public keys for the new private key hierarchy. These keys are not usually published, but are needed by lower wallet tiers.
+There are two global wallet public keys for the new private key hierarchy.
 
 | Key | Name | Value |
 |-----|------|-------|
@@ -255,7 +262,7 @@ Under the legacy key hierarchy, the two public keys of a subaddress are construc
 * <code>K<sub>s</sub><sup>j</sup> = K<sub>s</sub> + k<sub>subext</sub><sup>j</sup> G</code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>v</sub> K<sub>s</sub><sup>j</sup></code>
 
-Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires View-Received access to the wallet.
+Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires View-Received access to the wallet.
 
 #### Subaddress keys (New Hierarchy)
 
@@ -268,7 +275,7 @@ Where address private key <code>k<sub>a</sub><sup>j</sup></code> are defined as 
 
 | Symbol | Name | Definition |
 |-------------------------- |-------------------------- |------------------------------|
-|<code>k<sub>a</sub><sup>j</sup></code> | address private key  | <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code> |
+|<code>k<sub>a</sub><sup>j</sup></code> | address private key  | <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("jamtis_address_private_key" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code> |
 | <code>s<sub>gen</sub><sup>j</sup></code> | address index generators | <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("jamtis_address_index_generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code> |
 
 The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>.
@@ -319,7 +326,7 @@ The amount commitment is constructed as <code>C<sub>a</sub> = k<sub>a</sub> G + 
 
 #### Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted string that provides protection against Janus attacks in Carrot. This space is to be used later for "address tags" in Jamtis. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the tx components as well as the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, which would make a Janus attack pointless.
+The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the transaction components as well as the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, which would make a Janus attack pointless.
 
 #### Amount
 
@@ -335,12 +342,12 @@ The enote components are derived from the shared secret keys <code>K<sub>d</sub>
 |<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| enote_type)</code> |
+|<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sup>nm</sup></code>|janus anchor, normal| <code>anchor<sup>nm</sup> = RandBytes(16)</code> |
 |<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
-|<code>k<sub>e</sub></code>|ephemeral privkey| <code>k<sub>e</sub> = KeyDerive2("carrot_sending_key_normal" \|\| anchor<sup>nm</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
+|<code>k<sub>e</sub></code>|ephemeral private key| <code>k<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sup>nm</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
 
@@ -362,7 +369,7 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 
 The shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ctx</sup></code> are used to encrypt/extend all components of Carrot transactions. Most components (except for the view tag for performance reasons) use <code>K<sub>d</sub><sup>ctx</sup></code> to encrypt components.
 
-<code>K<sub>d</sub></code> can be derived the following ways:
+<code>K<sub>d</sub></code> is derived the following ways:
 
 |                       | Derivation                                                           |
 |---------------------- | ---------------------------------------------------------------------|
@@ -377,7 +384,7 @@ Here `input_context` is defined as:
 | transaction type | `input_context`                                   |
 |----------------- |-------------------------------------------------- |
 | coinbase         | <code>"C" \|\| IntToBytes256(block height)</code> |
-| non-coinbase     | <code>"N" \|\| first spent key image</code>       |
+| non-coinbase     | <code>"R" \|\| first spent key image</code>       |
 
 The purpose of `input_context` is to make <code>K<sub>d</sub><sup>ctx</sup></code> unique for every transaction. This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. This aspect helps protect against the burning bug.
 
@@ -435,14 +442,14 @@ We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v
 1. If a coinbase enote, then let `a' = a`, let <code>k<sub>a</sub>' = 1</code>, and skip to step 13
 1. Let <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Let <code>a' = a<sub>enc</sub> ⊕ m<sub>a</sub></code>
-1. Let <code>k<sub>a</sub>' = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "payment")</code>
+1. Let <code>k<sub>a</sub>' = ScalarDerive("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "payment")</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' == C<sub>a</sub></code>, then jump to step 13
-1. Let <code>k<sub>a</sub>' = KeyDerive2("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "change")</code>
+1. Let <code>k<sub>a</sub>' = ScalarDerive("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "change")</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' ≠ C<sub>a</sub></code>, then <code><b>ABORT</b></code>
-1. Let <code>k<sub>g</sub><sup>o</sup>' = KeyDerive2("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
-1. Let <code>k<sub>t</sub><sup>o</sup>' = KeyDerive2("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
 1. Let <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
 1. If <code>K<sub>d</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 33
@@ -452,11 +459,11 @@ We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v
 1. Let <code>anchor' = anchor<sub>enc</sub> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
-1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Set `pid' = nullpid`
-1. Let <code>k<sub>e</sub>' = KeyDerive2("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
@@ -469,13 +476,13 @@ An enote is spendable if the computed nominal address spend pubkey <code>K<sub>s
 
 #### Legacy key hierarchy key images
 
-If `j≠0`, then let <code>k<sub>subext</sub><sup>j</sup> = KeyDerive2Legacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>subext</sub><sup>j</sup> = 0</code>.
+If `j≠0`, then let <code>k<sub>subext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>subext</sub><sup>j</sup> = 0</code>.
 
 The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>subext</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
 #### New key hierarchy key images
 
-If `j≠0`, then let <code>k<sub>a</sub><sup>j</sup> = KeyDerive2("jamtis_address_privkey" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
+If `j≠0`, then let <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("jamtis_address_private_key" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
 
 The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>a</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
@@ -577,7 +584,7 @@ Carrot ephemeral pubkeys are indistinguishable from random Curve25519 pubkeys. T
 1. Sample `r` from uniform integer distribution `[0, ℓ)`.
 2. Set <code>D<sub>e</sub> = r B</code>
 
-Note that in Carrot ephemeral pubkey construction, the ephemeral privkey <code>k<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
+Note that in Carrot ephemeral pubkey construction, the ephemeral private key <code>k<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
 
 #### Other enote component random indistinguishability
 
