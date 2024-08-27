@@ -119,8 +119,8 @@ Elements of <code>𝔾<sub>E</sub></code> are denoted by <code>K<sub>subscript</
 
 We define two functions that can transform points between the two curves:
 
-1. `ConvertPubkey1(D)` takes a Curve25519 point `D` and outputs the corresponding Ed25519 point `K` with an even-valued `x` coordinate.
-2. `ConvertPubkey2(K)` takes an Ed25519 point `K` and outputs the corresponding Curve25519 point `D`.
+1. `ConvertPubkeyM(D)` takes a Curve25519 point `D` and outputs the corresponding Ed25519 point `K` with an even-valued `x` coordinate.
+2. `ConvertPubkeyE(K)` takes an Ed25519 point `K` and outputs the corresponding Curve25519 point `D`.
 
 The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the Ed25519 y-coordinate and `u` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered.
 
@@ -368,8 +368,8 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 
 | Transfer Type            | <code>D<sub>e</sub></code> Derivation                                |
 |--------------------------|----------------------------------------------------------------------|   
-| Normal, to main address  | <code>ConvertPubkey2(k<sub>e</sub> G)</code>                         |
-| Normal, to subaddress    | <code>ConvertPubkey2(k<sub>e</sub> K<sub>s</sub><sup>j</sup>)</code> |
+| Normal, to main address  | <code>ConvertPubkeyE(k<sub>e</sub> G)</code>                         |
+| Normal, to subaddress    | <code>ConvertPubkeyE(k<sub>e</sub> K<sub>s</sub><sup>j</sup>)</code> |
 | Internal                 | *any*                                                                |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
@@ -384,7 +384,7 @@ The shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ct
 |                       | Derivation                                                           |
 |---------------------- | ---------------------------------------------------------------------|
 |Sender, external       |    <code>NormalizeX(8 k<sub>e</sub> K<sub>v</sub><sup>j</sup>)</code>|
-|Recipient, external    |<code>NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>|
+|Recipient, external    |<code>NormalizeX(8 k<sub>v</sub> ConvertPubkeyM(D<sub>e</sub>))</code>|
 |Internal               |                                           <code>s<sub>vb</sub></code>|
 
 Then, <code>K<sub>d</sub><sup>ctx</sup></code> is derived as <code>K<sub>d</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| K<sub>d</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
@@ -434,7 +434,7 @@ Miners should continue the practice of only allowing main addresses for the dest
 
 ### 7.9 Scanning performance
 
-When scanning for received enotes, legacy wallets need to calculate <code>NormalizeX(8 k<sub>v</sub> ConvertPubKey1(D<sub>e</sub>))</code>. The operation <code>ConvertPubKey1(D<sub>e</sub>)</code> can be done during point decompression for free. The `NormalizeX()` function simply drops the x coordinate. The scanning performance for legacy wallets is therefore the same as in the old protocol.
+When scanning for received enotes, legacy wallets need to calculate <code>NormalizeX(8 k<sub>v</sub> ConvertPubkeyM(D<sub>e</sub>))</code>. The operation <code>ConvertPubkeyM(D<sub>e</sub>)</code> can be done during point decompression for free. The `NormalizeX()` function simply drops the x coordinate. The scanning performance for legacy wallets is therefore the same as in the old protocol.
 
 ## 8. Balance recovery
 
@@ -442,7 +442,7 @@ When scanning for received enotes, legacy wallets need to calculate <code>Normal
 
 If this enote scan returns successfully, we will be able to recover the address spend pubkey, amount, and PID. Additionally, a successful return guarantees that A) the enote is uniquely addressed to our account, B) Janus attacks are mitigated, and C) burning bug attacks are mitigated. Note, however, that a successful return does *NOT* guarantee that the enote is spendable (i.e. that we will be able to recover `x, y` such that <code>K<sub>o</sub> = x G + y T</code>).
 
-We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkey1(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code> if using the new key hierarchy.
+We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkeyM(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code> if using the new key hierarchy.
 
 1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code>
 1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
@@ -468,11 +468,11 @@ We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
 1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
-1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
+1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Set `pid' = nullpid`
 1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
-1. Let <code>D<sub>e</sub>' = ConvertPubkey2(k<sub>e</sub>' K<sub>base</sub>)</code>
+1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
 1. If <code>anchor' ≠ anchor<sup>sp</sup></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
