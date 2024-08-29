@@ -6,9 +6,9 @@ Carrot (Cryptonote Address on Rerandomizable-RingCT-Output Transactions) is an a
 
 ### 1.1 Cryptonote Addresses, Integrated Addresses, and Subaddresses
 
-Cryptonote [[1](https://github.com/monero-project/research-lab/blob/master/whitepaper/whitepaper.pdf)] addresses are a crucial component of Monero's privacy model, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of Cryptonote addresses ensures that all transaction outputs are unlinkable regardless of the number of times an address is reused, and without requiring interactivity.
+In 2013, the Cryptonote whitepaper [[1](https://github.com/monero-project/research-lab/blob/master/whitepaper/whitepaper.pdf)] introduced an addressing scheme which remains a crucial component of Monero's privacy model today, providing recipient unlinkability across transactions. Unlike Bitcoin, which uses transparent addresses, Monero's use of addresses ensures that all created transaction outputs cannot be attributed to any single receiver regardless of the number of times an address is reused, and without requiring interactivity.
 
-In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs* [[2](https://www.getmonero.org/resources/moneropedia/paymentid.html)], an arbitrary 32 byte string attached to transactions, was the initial solution to this problem. *Integrated addresses* improved the UX of these payment IDs by including them inside of addresses, and shortening them to 8 bytes. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy.
+In the beginning, since there was only one address per wallet, a method was needed for receivers to differentiate their senders. *Payment IDs* [[2](https://www.getmonero.org/resources/moneropedia/paymentid.html)], an arbitrary 32 byte string attached to transactions, was the initial solution to this problem. The aim was that users sending funds would include a 32 byte message that gave the recipient user enough evidence to attribute that transaction to them. *Integrated addresses* improved the UX of these payment IDs by having the recipient's wallet generate and include them inside of addresses, which were automatically added to the transaction data by the sender's wallet. They were also shortened to 8 bytes. Wallets then started encrypting the payment IDs on-chain, and adding dummies if no payment IDs were used, which greatly improved privacy.
 
 In 2016, Monero iterated even further by introducing *subaddresses* [[3](https://github.com/monero-project/research-lab/issues/7)], an addressing scheme that existing wallets could adopt, allowing them to generate an arbitrary number of unlinkable receiving addresses without affecting scan speed.
 
@@ -52,7 +52,7 @@ As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability 
 
 ### 2.7 Internal forward secrecy
 
-Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), even if the observer has knowledge of the receiver's address.
+Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), even if the observer has knowledge of the receiver's addresses.
 
 ### 2.8 Payment ID confirmation
 
@@ -157,24 +157,20 @@ The ledger can be modeled as an append-only list of transactions. Transactions c
 
 ### 5.1 Legacy key hierarchy
 
-The following figure shows the overall hierarchy used for legacy wallet keys. Note that the master secret <code>s<sub>m</sub></code> doesn't exist for multi-signature wallets. <code>k<sub>v</sub></code> will also be derived separately from <code>k<sub>s</sub></code>.
+The following figure shows the overall hierarchy used for legacy wallet keys. Note that the private spend key <code>k<sub>s</sub></code> doesn't exist for multi-signature wallets. <code>k<sub>v</sub></code> will also be derived separately from <code>k<sub>s</sub></code>.
 
 ```
-s_m (master secret)
+k_s (spend key)
  |
  |
  |
- +- k_s (spend key)
-     |
-     |
-     |
-     +- k_v (view key)
+ +- k_v (view key)
 ```
 
-| Key | Name | Derivation | Used to |
-|-----|------|------------|---------|
-|<code>k<sub>s</sub></code> | spend key | <code>k<sub>s</sub> = BytesToInt256(s<sub>m</sub>) mod ℓ</code> | generate key images and spend enotes                 |
-|<code>k<sub>v</sub></code> | view key  | <code>k<sub>v</sub> = ScalarDeriveLegacy(k<sub>s</sub>)</code>    | find and decode received enotes, generate addresses |
+| Key                       | Name      | Derivation                                                     | Used to |
+|---------------------------|-----------|----------------------------------------------------------------|---------|
+|<code>k<sub>s</sub></code> | spend key | random element of **F**<sub>*ℓ*</sub>                          | calculate key images, spend enotes |
+|<code>k<sub>v</sub></code> | view key  | <code>k<sub>v</sub> = ScalarDeriveLegacy(k<sub>s</sub>)</code> | find and decode received enotes, generate addresses |
 
 ### 5.2 New key hierarchy
 
@@ -209,7 +205,7 @@ s_m (master secret)
 |<code>k<sub>ps</sub></code> | prove-spend key         | <code>k<sub>ps</sub> = ScalarDerive("jamtis_prove_spend_key" \|\| s<sub>m</sub>)</code>                  | spend enotes |
 |<code>s<sub>vb</sub></code> | view-balance secret     | <code>s<sub>vb</sub> = SecretDerive("jamtis_view_balance_secret" \|\| s<sub>m</sub>)</code>              | find and decode received and outgoing enotes |
 |<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("jamtis_generate_image_key" \|\| s<sub>vb</sub>)</code>              | generate key images |
-|<code>k<sub>v</sub></code>  | view key                | <code>k<sub>v</sub> = ScalarDerive("carrot_view_key" \|\| s<sub>vb</sub>)</code>                         | find and decode received enotes |
+|<code>k<sub>v</sub></code>  | incoming view key       | <code>k<sub>v</sub> = ScalarDerive("carrot_view_key" \|\| s<sub>vb</sub>)</code>                         | find and decode received enotes |
 |<code>s<sub>ga</sub></code> | generate-address secret | <code>s<sub>ga</sub> = SecretDerive</sub>("jamtis_generate_address_secret" \|\| s<sub>vb</sub>)</code> | generate addresses |
 
 ### 5.3 New wallet public keys
@@ -240,11 +236,11 @@ This wallet tier can generate public addresses for the wallet. It doesn't provid
 
 #### 5.4.2 View-Received
 
-This level provides the wallet with the ability to see all incoming payments, but cannot see any outgoing payments and change outputs. It can be used for payment processing or auditing purposes.
+This tier provides the wallet with the ability to see all external payments and external change, but cannot see any internal enotes, nor where any enotes are spent.
 
 #### 5.4.3 View-All
 
-This is a full view-only wallet than can see all incoming and outgoing payments (and thus can calculate the correct wallet balance).
+This is a full view-only wallet than can see all external and internal payment and change enotes, as well as where they are spent (and thus can calculate the correct wallet balance).
 
 #### 5.4.4 Master wallet (Master)
 
@@ -254,9 +250,11 @@ This tier has full control of the wallet.
 
 ### 6.1 Address generation
 
-There are two types of Cryptonote addresses: main addresses and subaddresses. There can only be a maximum of one main address per view key, but any number of subaddresses. However, by convention, subaddresses are generated from a "subaddress index", which is a tuple of two 32-bit unsigned integers <code>(j<sub>major</sub>, j<sub>minor</sub>)</code>, which allows for 2<sup>64</sup> addresses. The reason for the distinction between <code>j<sub>major</sub></code> and <code>j<sub>minor</sub></code> is simply for UX reasons. The "major" index is used to make separate "accounts" per wallet, which is used to compartmentalize input selection, change outputs, etc. The subaddress index `(0, 0)` is used to designate the main address, even though the key derivation is different. For brevity's sake, we use the label `j` as shorthand for <code>(j<sub>major</sub>, j<sub>minor</sub>)</code> and `0` as a shorthand for `(0, 0)`.
+There are two cryptographically distinct address types in Monero: Cryptonote and subaddress. Note that integrated addresses are derived exactly like a Cryptonote address, but they have an additional payment ID included. There can only be a maximum of one Cryptonote address per view key, referred to as the *main* address, but any number of subaddresses.
 
-Each Cryptonote address derived from index `j` encodes the tuple <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
+By convention, subaddresses are generated from a "subaddress index", which is a tuple of two 32-bit unsigned integers <code>(j<sub>major</sub>, j<sub>minor</sub>)</code>, which allows for 2<sup>64</sup> addresses. The reason for the distinction between <code>j<sub>major</sub></code> and <code>j<sub>minor</sub></code> is simply for UX reasons. The "major" index is used to make separate "accounts" per wallet, which is used to compartmentalize input selection, change outputs, etc. The subaddress index `(0, 0)` is used to designate the main address, even though the key derivation is different. For brevity's sake, we use the label `j` as shorthand for <code>(j<sub>major</sub>, j<sub>minor</sub>)</code> and `0` as a shorthand for `(0, 0)`.
+
+Each Monero address derived from index `j` transmits information <code>(is_main, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>, pid)</code>, where `is_main` is a boolean flag which is `true` for Cryptonote addresses, and `false` for subaddresses.
 
 #### 6.1.1 Main address keys
 
@@ -267,58 +265,42 @@ The two public keys of the main address are constructed as:
 
 #### 6.1.2 Subaddress keys (Legacy Hierarchy)
 
-Under the legacy key hierarchy, the two public keys of a subaddress are constructed as:
+Under the legacy key hierarchy, the two public keys of the subaddress at index `j` are constructed as:
 
-* <code>K<sub>s</sub><sup>j</sup> = K<sub>s</sub> + k<sub>subext</sub><sup>j</sup> G</code>
+* <code>k<sub>sub_ext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>K<sub>s</sub><sup>j</sup> = K<sub>s</sub> + k<sub>sub_ext</sub><sup>j</sup> G</code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>v</sub> K<sub>s</sub><sup>j</sup></code>
 
-Where subaddress extension key <code>k<sub>subext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>. Notice that generating new subaddresses requires View-Received access to the wallet.
+Notice that generating new subaddresses this way requires knowledge of <code>k<sub>v</sub></code> which necessarily ties the ability to generate subaddresses to the ability to find owned enotes.
 
 #### 6.1.3 Subaddress keys (New Hierarchy)
 
-Under the new key hierarchy, the two public keys of a subaddress are constructed as:
+Under the new key hierarchy, the two public keys of the subaddress at index `j` are constructed as:
 
+* <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("jamtis_address_index_generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("carrot_subaddress_scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
 * <code>K<sub>s</sub><sup>j</sup> = k<sub>a</sub><sup>j</sup> K<sub>s</sub></code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>a</sub><sup>j</sup> K<sub>v</sub></code>
 
-Where address private key <code>k<sub>a</sub><sup>j</sup></code> are defined as follows:
-
-| Symbol | Name | Definition |
-|-------------------------- |-------------------------- |------------------------------|
-|<code>k<sub>a</sub><sup>j</sup></code> | address private key  | <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("jamtis_address_private_key" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code> |
-| <code>s<sub>gen</sub><sup>j</sup></code> | address index generators | <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("jamtis_address_index_generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code> |
-
-The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>.
-
-#### 6.1.4 Integrated Addresses
-
-Subaddresses are the recommended way to differentiate received enotes to your account for most users. However, there are some drawbacks to subaddresses. Most notably, in the past, generating subaddresses required View-Received access to the wallet (this is no longer the case with the new key hierarchy). This is not ideal for payment processors, so in practice a lot of processors turned to integrated addresses. Integrated addresses are simply main addresses with an 8-byte arbitrary string attached, called a *payment ID*. This payment ID is encrypted and then encoded into the transaction. In the reference wallet implementation, all transaction constructors who did not need to encode an encrypted payment ID into their transactions included a *dummy* payment ID by generating 8 random bytes. This makes the two types of sends indistinguishable on-chain from each other to external observers.
+The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
 
 ## 7. Transaction protocol
 
 ### 7.1 Transaction global fields
 
-#### 7.1.1 Unlock time
+#### 7.1.1 Payment ID
 
-The `unlock_time` field [[15](https://www.getmonero.org/resources/moneropedia/unlocktime.html)] should be disabled (i.e. set to 0), enforced by validator rule. This guarantees that enotes with valid <code>K<sub>o</sub></code> are always spendable after a sane period of time, an assumption which did not always hold true [[16](https://github.com/monero-project/research-lab/issues/78)].
-
-#### 7.1.2 Payment ID
-
-A single 8-byte encrypted payment ID field is retained for 2-output non-coinbase transactions for backwards compatibility with legacy integrated addresses. When not sending to a legacy integrated address, `pid` is set to zero.
+A single 8-byte encrypted payment ID field is included in non-coinbase transactions for backwards compatibility with integrated addresses. Because only one encrypted payment ID <code>pid<sub>enc</sub></code> is included per transaction, senders can only send to one integrated addresses per transaction. When not sending to a legacy integrated address, `pid` is set to `nullpid`, the payment ID of all zero bytes.
 
 The payment ID `pid` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>pid</sub></code>. The encryption mask is derived from the shared secrets of the payment enote.
 
-#### 7.1.3 View tag size specifier
-
-A new 1-byte field `npbits` is added for future Jamtis transactions, but is unused in Carrot.
-
-#### 7.1.4 Ephemeral public keys
+#### 7.1.2 Ephemeral public keys
 
 Every 2-output transaction has one ephemeral public key <code>D<sub>e</sub></code>. Transactions with `N > 2` outputs have `N` ephemeral public keys (one for each output). Coinbase transactions always have one key per output.
 
 ### 7.2 Enote format
 
-Each enote represents an amount `a` sent to a Cryptonote address <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
+Each enote represents an amount `a` sent to an address <code>(is_main, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
 
 An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* <code>anchor<sub>enc</sub></code>, and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
 
@@ -484,13 +466,13 @@ An enote is spendable if the computed nominal address spend pubkey <code>K<sub>s
 
 #### 8.2.1 Legacy key hierarchy key images
 
-If `j≠0`, then let <code>k<sub>subext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>subext</sub><sup>j</sup> = 0</code>.
+If `j ≠ 0`, then let <code>k<sub>sub_ext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>sub_ext</sub><sup>j</sup> = 0</code>.
 
-The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>subext</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
+The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>sub_ext</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
 #### 8.2.2 New key hierarchy key images
 
-If `j≠0`, then let <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("jamtis_address_private_key" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
+If `j ≠ 0`, then let <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("carrot_subaddress_scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
 
 The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>a</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
@@ -500,7 +482,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## 9. Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[17](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
+Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[15](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### 9.1 Balance recovery security
 
@@ -537,11 +519,11 @@ More concretely, it is computationally intractable, without knowledge of the rec
 
 #### 9.2.1 Computational Address-Address Unlinkability
 
-A third party cannot determine if two non-integrated Cryptonote addresses share the same <code>k<sub>v</sub></code> with any better probability than random guessing.
+A third party cannot determine if two non-integrated addresses share the same <code>k<sub>v</sub></code> with any better probability than random guessing.
 
 #### 9.2.2 Computational Address-Enote Unlinkability
 
-A third party cannot determine if a Cryptonote addresses is the destination of an enote with any better probability than random guessing, even if they know the destination address.
+A third party cannot determine if an address is the destination of an enote with any better probability than random guessing, even if they know the destination address.
 
 #### 9.2.3 Computational Enote-Enote Unlinkability
 
@@ -601,7 +583,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 
 ## 11. Glossary
 
-- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[18](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
+- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[16](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
 - *Burning Bug Attack* - An attack where an exploiter duplicates an output pubkey and tricks the recipient into accepting both, even though only one can be spent
 - *Coinbase Transaction* - A transaction which has no key images, and plaintext integer amounts instead of amount commitments in its outputs
 - *Cryptonote* - A cryptocurrency consensus protocol and addressing scheme which was the foundation for Monero's ledger interactions initially
@@ -629,6 +611,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Transaction* - An atomic modification to the ledger containing key images, transaction outputs, and other unstructured data
 - *Transaction Output* - A distinct tuple of an elliptic curve point and amount commitment or plaintext amount which is contained in a list in a transaction
 - *View Tag* - A small enote component, calculated as a partial hash of the sender-receiver shared key, which is checked early in the balance recovery process to optimize scanning performance
+- *Wallet* - A collection of private key data, cached ledger state, and other information which is used to interact with the shared ledger
 
 ## 12. References
 
@@ -646,7 +629,5 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://ed25519.cr.yp.to/ed25519-20110926.pdf
 1. https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/
 1. https://cr.yp.to/ecdh.html
-1. https://www.getmonero.org/resources/moneropedia/unlocktime.html
-1. https://github.com/monero-project/research-lab/issues/78
 1. https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf
 1. https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html
