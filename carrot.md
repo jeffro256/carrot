@@ -364,10 +364,10 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 |--------------------------|----------------------------------------------------------------------|   
 | Normal, to main address  | <code>ConvertPubkeyE(k<sub>e</sub> G)</code>                         |
 | Normal, to subaddress    | <code>ConvertPubkeyE(k<sub>e</sub> K<sub>s</sub><sup>j</sup>)</code> |
-| Internal                 | *any*                                                                |
+| Internal                 | random element of <code>𝔾<sub>M</sub></code>                         |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
-<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are "special", then no specific derivation of <code>D<sub>e</sub></code> is required. Internal enotes do not require any specific derivation for <code>D<sub>e</sub></code> either.
+<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are "special", then no specific derivation of <code>D<sub>e</sub></code> is required, and <code>D<sub>e</sub></code> should be set to a random element of <code>𝔾<sub>M</sub></code>.
 
 ### 7.5 Sender-receiver shared secrets
 
@@ -425,10 +425,6 @@ In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared
 Coinbase transactions are not considered to be internal.
 
 Miners should continue the practice of only allowing main addresses for the destinations of coinbase transactions in Carrot. This is because, unlike normal enotes, coinbase enotes do not contain an amount commitment, and thus scanning a coinbase enote commitment has no "hard target". If subaddresses can be the destinations of coinbase transactions, then the scanner *must* have their subaddress table loaded and populated to correctly scan coinbase enotes. If only main addresses are allowed, then the scanner does not need the table and can instead simply check whether <code>K<sub>s</sub><sup>0</sup> ?= K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code>.
-
-### 7.9 Scanning performance
-
-When scanning for received enotes, legacy wallets need to calculate <code>NormalizeX(8 k<sub>v</sub> ConvertPubkeyM(D<sub>e</sub>))</code>. The operation <code>ConvertPubkeyM(D<sub>e</sub>)</code> can be done during point decompression for free. The `NormalizeX()` function simply drops the x coordinate. The scanning performance for legacy wallets is therefore the same as in the old protocol.
 
 ## 8. Balance recovery
 
