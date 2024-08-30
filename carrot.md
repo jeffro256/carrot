@@ -304,44 +304,56 @@ Each enote represents an amount `a` sent to an address <code>(is_main, K<sub>s</
 
 An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* <code>anchor<sub>enc</sub></code>, and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
 
-#### 7.2.1 The output key
+#### 7.2.1 The output pubkey
 
-The output key is constructed as <code>K<sub>o</sub> = K<sub>s</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code>, where <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> are output key extensions.
+The output pubkey, sometimes referred to as the "one-time address", is a part of the underlying Rerandomizable RingCT transaction output. Knowledge of the opening of this point allows for spending of the enote. Partial opening knowledge allows for calculating the key image of this enote, signalling in which location it was spent.
 
-#### 7.2.2 View tags
+#### 7.2.2 Amount commitment
+
+The amount commitment is also part of the underlying Rerandomizable RingCT transaction output. This Pederson commitment should open up to the decrypted value in <code>a<sub>enc</sub></code> and the blinding factor derived from the shared secret. Coinbase transactions have this field omitted.
+
+#### 7.2.3 Amount
+
+In non-coinbase transactions, the amount `a` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>a</sub></code>. In coinbase transactions, `a` is included as part of the enote in plaintext.
+
+#### 7.2.4 View tags
 
 The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the view key. This view tag is used to fail quickly in the scan process for enotes not intended for the current wallet. The bit size of 24 was chosen as the fixed size because of Jamtis requirements.
 
-#### 7.2.3 Amount commitment
+#### 7.2.5 Janus anchor
 
-The amount commitment is constructed as <code>C<sub>a</sub> = k<sub>a</sub> G + a H</code>, where <code>k<sub>a</sub></code> is the commitment mask and `a` is the amount. Coinbase transactions have implicitly <code>C<sub>a</sub> = a H + G</code>.
-
-#### 7.2.4 Janus anchor
-
-The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor=anchor<sup>nm</sup></code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor=anchor<sup>sp</sup></code> is set to the first 16 bytes of a hash of the transaction components as well as the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, which would make a Janus attack pointless.
-
-#### 7.2.5 Amount
-
-The amount `a` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>a</sub></code>.
+The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor</code> is set to an indirect HMAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to a wallet without performing a Janus attack.
 
 ### 7.3 Enote derivations
 
 The enote components are derived from the shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ctx</code>. The definitions of these keys are described below.
 
-| Component | Name   | Derivation |
+#### 7.3.1 Intermediate Values
+
+| Symbol | Name   | Derivation |
 |-----------|--------|-----------|
-|<code>vt</code>|view tag| <code>vt = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>k<sub>g</sub><sup>o</sup></code>|output key extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>k<sub>t</sub><sup>o</sup></code>|output key extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>anchor<sup>nm</sup></code>|janus anchor, normal| <code>anchor<sup>nm</sup> = RandBytes(16)</code> |
-|<code>anchor<sup>sp</sup></code>|janus anchor, special| <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
-|<code>k<sub>e</sub></code>|ephemeral private key| <code>k<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sup>nm</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
+|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
+|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
+|<code>k<sub>e</sub></code>|ephemeral private key| <code>k<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
+
+#### 7.3.2 Component Values
+
+| Symbol                           | Name                  | Derivation |
+|----------------------------------|-----------------------|------------|
+|<code>K<sub>o</sub></code>        | output pubkey         | <code>K<sub>o</sub> = K<sub>s</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code> |
+|<code>C<sub>a</sub></code>        | amount commitment     | <code>C<sub>a</sub> = k<sub>a</sub> G + a H</code> |
+|<code>a<sub>enc</sub></code>      | encrypted amount      | <code>a<sub>enc</sub> = a ⊕ m<sub>a</sub></code>   |
+|`vt`                              |view tag               | <code>vt = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code> |
+|<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
+|<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
 ### 7.4 Ephemeral pubkey construction
 
@@ -456,8 +468,8 @@ We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v
 1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
-1. Let <code>anchor<sup>sp</sup> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
-1. If <code>anchor' ≠ anchor<sup>sp</sup></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
+1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
+1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
 1. Return successfully!
 
 ### 8.2 Determining spendability and computing key images
