@@ -147,7 +147,7 @@ To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub
 
 ### Transaction model
 
-Transactions contain a list of outputs, a list of key images, and additional unstructured data. All output pubkeys <code>K<sub>o</sub></code> and key images `L` must be unique within a transaction. 
+Transactions contain a list of outputs, a list of key images, and additional unstructured data. All key images must be unique within a transaction.
 
 ### Ledger model
 
@@ -157,7 +157,7 @@ The ledger can be modeled as an append-only list of transactions. Transactions c
 
 ### Legacy key hierarchy
 
-The following figure shows the overall hierarchy used for legacy wallet keys. Note that the private spend key <code>k<sub>s</sub></code> doesn't exist for multi-signature wallets. <code>k<sub>v</sub></code> will also be derived separately from <code>k<sub>s</sub></code>.
+The following figure shows the overall hierarchy used for legacy wallet keys. Note that the private spend key <code>k<sub>s</sub></code> doesn't exist for multi-signature wallets.
 
 ```
 k_s (spend key)
@@ -340,7 +340,7 @@ The enote components are derived from the shared secret keys <code>K<sub>d</sub>
 |<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
 |<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
-|<code>k<sub>e</sub></code>|ephemeral private key| <code>k<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
+|<code>k<sub>e</sub></code>|ephemeral private key| <code>k<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
 
@@ -457,11 +457,11 @@ We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v
 1. Let <code>anchor' = anchor<sub>enc</sub> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
-1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Set `pid' = nullpid`
-1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
