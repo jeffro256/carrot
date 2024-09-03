@@ -90,16 +90,16 @@ The function `Keccak256(x)` refers to the Keccak function [[citation](https://ke
 
 Two elliptic curves are used in this specification:
 
-1. **Curve25519** - a Montgomery curve. Points on this curve include a cyclic subgroup <code>𝔾<sub>M</sub></code>.
-1. **Ed25519** - a twisted Edwards curve. Points on this curve include a cyclic subgroup <code>𝔾<sub>E</sub></code>.
+1. **Curve25519** - a Montgomery curve. Points on this curve include a cyclic subgroup 𝔾<sub>M</sub>.
+1. **Ed25519** - a twisted Edwards curve. Points on this curve include a cyclic subgroup 𝔾<sub>E</sub>.
 
-Both curves are birationally equivalent, so the subgroups <code>𝔾<sub>M</sub></code> and <code>𝔾<sub>E</sub></code> have the same prime order <code>ℓ = 2<sup>252</sup> + 27742317777372353535851937790883648493</code>. The total number of points on each curve is `8ℓ`.
+Both curves are birationally equivalent, so the subgroups 𝔾<sub>M</sub> and 𝔾<sub>E</sub> have the same prime order <code>ℓ = 2<sup>252</sup> + 27742317777372353535851937790883648493</code>. The total number of points on each curve is `8ℓ`.
 
 #### Curve25519
 
 The Montgomery curve Curve25519 [[citation](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used.
 
-Elements of <code>𝔾<sub>M</sub></code> are denoted by <code>D<sub>subscript</sub><sup>superscript</sup></code>, and are serialized as their x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>.
+Elements of 𝔾<sub>M</sub> are denoted by `D`, and are serialized as their x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>. In this specification, we always perform a "full" scalar multiplication on Curve25519 without scalar clamping, a notable difference from typical X25519 implementations. Using a clamped scalar multiplication will break completeness of the ECDH for existing pubkeys in addresses for which the private keys can be any element of **F**<sub>*ℓ*</sub>.
 
 #### Ed25519
 
@@ -107,13 +107,13 @@ The twisted Edwards curve Ed25519 [[citation](https://ed25519.cr.yp.to/ed25519-2
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
-| `G` | generator of <code>𝔾<sub>E</sub></code> | `5866666666666666666666666666666666666666666666666666666666666666`
+| `G` | generator of 𝔾<sub>E</sub> | `5866666666666666666666666666666666666666666666666666666666666666`
 | `H` | <code>H<sub>p</sub><sup>1</sup>(G)</code> | `8b655970153799af2aeadc9ff1add0ea6c7251d54154cfa92c173a0dd39c1f94`
 | `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero generator T"))</code> | `966fc66b82cd56cf85eaec801c42845f5f408878d1561e00d3d7ded2794d094f`
 
 Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on Ed25519.
 
-Elements of <code>𝔾<sub>E</sub></code> are denoted by <code>K<sub>subscript</sub><sup>superscript</sup></code> and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>K = k G</code>.
+Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>K = k G</code>.
 
 #### Point conversion
 
@@ -123,8 +123,6 @@ We define two functions that can transform points between the two curves:
 2. `ConvertPubkeyE(K)` takes an Ed25519 point `K` and outputs the corresponding Curve25519 point `D`.
 
 The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the Ed25519 y-coordinate and `u` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered.
-
-Additionally, we define the function `NormalizeX(K)` that takes an Ed25519 point `K` and returns `K` if its `x` coordinate is even or `-K` if its `x` coordinate is odd.
 
 #### Private keys
 
@@ -143,7 +141,7 @@ Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a<
 
 ### Spending a transaction output
 
-To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA *"linking tag"* or *"nullifier"*) <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. All key images must be in the prime order subgroup <code>𝔾<sub>E</sub></code>.
+To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub>o</sub> = x G + y T</code> and <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Spending an output necessarily emits a *key image* (AKA *"linking tag"* or *"nullifier"*) <code>L = x H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>. All key images must be in the prime order subgroup 𝔾<sub>E</sub>.
 
 ### Transaction model
 
@@ -326,7 +324,7 @@ The Janus anchor `anchor` is a 16-byte encrypted array that provides protection 
 
 ### Enote derivations
 
-The enote components are derived from the shared secret keys <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx</code>. The definitions of these keys are described below.
+The enote components are derived from the shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx</code>. The definitions of these secrets are described in a later section.
 
 #### Intermediate Values
 
@@ -364,10 +362,10 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 |--------------------------|----------------------------------------------------------------------|   
 | Normal, to main address  | <code>k<sub>e</sub> B</code>                                         |
 | Normal, to subaddress    | <code>k<sub>e</sub> ConvertPubkeyE(K<sub>s</sub><sup>j</sup>)</code> |
-| Internal                 | random element of <code>𝔾<sub>M</sub></code>                         |
+| Internal                 | random element of 𝔾<sub>M</sub>                                      |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
-<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are "special", then no specific derivation of <code>D<sub>e</sub></code> is required, and <code>D<sub>e</sub></code> should be set to a random element of <code>𝔾<sub>M</sub></code>.
+<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are "special", then no specific derivation of <code>D<sub>e</sub></code> is required, and <code>D<sub>e</sub></code> should be set to a random element of 𝔾<sub>M</sub>.
 
 ### Sender-receiver shared secrets
 
@@ -521,7 +519,7 @@ For any <code>K<sub>o</sub></code>, it is computationally intractable to find tw
 
 There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more honestly-derived non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
 
-More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>s<sub>sr</sub> = NormalizeX(8 r K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
+More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>s<sub>sr</sub> = 8 r ConvertPubkeyE(K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
 
 ### Unlinkability
 
