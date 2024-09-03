@@ -326,20 +326,20 @@ The Janus anchor `anchor` is a 16-byte encrypted array that provides protection 
 
 ### 7.3 Enote derivations
 
-The enote components are derived from the shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ctx</code>. The definitions of these keys are described below.
+The enote components are derived from the shared secret keys <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx</code>. The definitions of these keys are described below.
 
 #### 7.3.1 Intermediate Values
 
 | Symbol | Name   | Derivation |
 |-----------|--------|-----------|
-|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("jamtis_commitment_mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type)</code> |
+|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
-|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
+|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
 |<code>k<sub>e</sub></code>|ephemeral private key| <code>k<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
@@ -351,7 +351,7 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the enote ty
 |<code>K<sub>o</sub></code>        | output pubkey         | <code>K<sub>o</sub> = K<sub>s</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code> |
 |<code>C<sub>a</sub></code>        | amount commitment     | <code>C<sub>a</sub> = k<sub>a</sub> G + a H</code> |
 |<code>a<sub>enc</sub></code>      | encrypted amount      | <code>a<sub>enc</sub> = a ⊕ m<sub>a</sub></code>   |
-|`vt`                              |view tag               | <code>vt = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code> |
+|`vt`                              |view tag               | <code>vt = SecretDerive("jamtis_secondary_view_tag" \|\| s<sub>sr</sub> \|\| K<sub>o</sub>)</code> |
 |<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
@@ -362,8 +362,8 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 
 | Transfer Type            | <code>D<sub>e</sub></code> Derivation                                |
 |--------------------------|----------------------------------------------------------------------|   
-| Normal, to main address  | <code>ConvertPubkeyE(k<sub>e</sub> G)</code>                         |
-| Normal, to subaddress    | <code>ConvertPubkeyE(k<sub>e</sub> K<sub>s</sub><sup>j</sup>)</code> |
+| Normal, to main address  | <code>k<sub>e</sub> B</code>                                         |
+| Normal, to subaddress    | <code>k<sub>e</sub> ConvertPubkeyE(K<sub>s</sub><sup>j</sup>)</code> |
 | Internal                 | random element of <code>𝔾<sub>M</sub></code>                         |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
@@ -371,17 +371,17 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 
 ### 7.5 Sender-receiver shared secrets
 
-The shared secret keys <code>K<sub>d</sub></code> and <code>K<sub>d</sub><sup>ctx</sup></code> are used to encrypt/extend all components of Carrot transactions. Most components (except for the view tag for performance reasons) use <code>K<sub>d</sub><sup>ctx</sup></code> to encrypt components.
+The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx</sup></code> are used to encrypt/extend all components of Carrot transactions. Most components (except the view tag for performance reasons) use <code>s<sub>sr</sub><sup>ctx</sup></code> to encrypt components.
 
-<code>K<sub>d</sub></code> is derived the following ways:
+<code>s<sub>sr</sub></code> is derived the following ways:
 
-|                       | Derivation                                                           |
-|---------------------- | ---------------------------------------------------------------------|
-|Sender, external       |    <code>NormalizeX(8 k<sub>e</sub> K<sub>v</sub><sup>j</sup>)</code>|
-|Recipient, external    |<code>NormalizeX(8 k<sub>v</sub> ConvertPubkeyM(D<sub>e</sub>))</code>|
-|Internal               |                                           <code>s<sub>vb</sub></code>|
+|                       | Derivation                                                            |
+|---------------------- | ----------------------------------------------------------------------|
+|Sender, external       |<code>8 k<sub>e</sub> ConvertPubkeyE(K<sub>v</sub><sup>j</sup></code>) |
+|Recipient, external    |<code>8 k<sub>v</sub> D<sub>e</sub></code>                             |
+|Internal               |<code>s<sub>vb</sub></code>                                            |
 
-Then, <code>K<sub>d</sub><sup>ctx</sup></code> is derived as <code>K<sub>d</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| K<sub>d</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
+Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
 
 Here `input_context` is defined as:
 
@@ -390,7 +390,7 @@ Here `input_context` is defined as:
 | coinbase         | <code>"C" \|\| IntToBytes256(block height)</code> |
 | non-coinbase     | <code>"R" \|\| first spent key image</code>       |
 
-The purpose of `input_context` is to make <code>K<sub>d</sub><sup>ctx</sup></code> unique for every transaction. This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. This aspect helps protect against the burning bug.
+The purpose of `input_context` is to make <code>s<sub>sr</sub><sup>ctx</sup></code> unique for every transaction. This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. This aspect helps protect against the burning bug.
 
 ### 7.6 Janus outputs
 
@@ -404,7 +404,7 @@ Self-send enotes are any enote created by the wallet that the enote is also dest
 
 Enotes which are destined for the sending wallet and use a symmetric secret instead of a ECDH exchange are called "internal enotes". The most common type are `"change"` enotes, but internal `"payment"` enotes are also possible. For typical 2-output transactions, an internal enote reuses the same value of <code>D<sub>e</sub></code> as the other enote.
 
-As specified above, these enotes use <code>s<sub>vb</sub></code> as the value for <code>K<sub>d</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>K<sub>d</sub></code> and internal <code>K<sub>d</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication and multiplication by eight in Ed25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
+As specified above, these enotes use <code>s<sub>vb</sub></code> as the value for <code>s<sub>sr</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>s<sub>sr</sub></code> and internal <code>s<sub>sr</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication and multiplication by eight in Ed25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
 
 #### 7.7.2 Special enotes
 
@@ -418,7 +418,7 @@ Every transaction that spends funds from the wallet must produce at least one se
 
 In a 2-out transaction with two internal or two special enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
 
-In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>K<sub>d</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
+In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>s<sub>sr</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
 
 ### 7.8 Coinbase transactions
 
@@ -432,28 +432,28 @@ Miners should continue the practice of only allowing main addresses for the dest
 
 If this enote scan returns successfully, we will be able to recover the address spend pubkey, amount, and PID. Additionally, a successful return guarantees that A) the enote is uniquely addressed to our account, B) Janus attacks are mitigated, and C) burning bug attacks are mitigated. Note, however, that a successful return does *NOT* guarantee that the enote is spendable (i.e. that we will be able to recover `x, y` such that <code>K<sub>o</sub> = x G + y T</code>).
 
-We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v</sub> ConvertPubkeyM(D<sub>e</sub>))</code>, and once with <code>K<sub>d</sub> = s<sub>vb</sub></code> if using the new key hierarchy.
+We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
 
-1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| K<sub>d</sub> \|\| K<sub>o</sub>)</code>
+1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| s<sub>sr</sub> \|\| K<sub>o</sub>)</code>
 1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
-1. Let <code>K<sub>d</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| K<sub>d</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
+1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
 1. If a coinbase enote, then let `a' = a`, let <code>k<sub>a</sub>' = 1</code>, and skip to step 13
-1. Let <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Let <code>a' = a<sub>enc</sub> ⊕ m<sub>a</sub></code>
-1. Let <code>k<sub>a</sub>' = ScalarDerive("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "payment")</code>
+1. Let <code>k<sub>a</sub>' = ScalarDerive("jamtis_commitment_mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| "payment")</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' == C<sub>a</sub></code>, then jump to step 13
-1. Let <code>k<sub>a</sub>' = ScalarDerive("jamtis_commitment_mask" \|\| K<sub>d</sub><sup>ctx</sup> \|\| "change")</code>
+1. Let <code>k<sub>a</sub>' = ScalarDerive("jamtis_commitment_mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| "change")</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' ≠ C<sub>a</sub></code>, then <code><b>ABORT</b></code>
-1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_g" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
-1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_t" \|\| K<sub>d</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_g" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
 1. Let <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
-1. If <code>K<sub>d</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 33
-1. Let <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 33
+1. Let <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Set <code>pid' = pid<sub>enc</sub> ⊕ m<sub>pid</sub></code>
-1. Let <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Let <code>anchor' = anchor<sub>enc</sub> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
@@ -464,7 +464,7 @@ We perform the scan process once with <code>K<sub>d</sub> = NormalizeX(8 k<sub>v
 1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(k<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
-1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| K<sub>d</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
+1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
 1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
 1. Return successfully!
 
@@ -521,7 +521,7 @@ For any <code>K<sub>o</sub></code>, it is computationally intractable to find tw
 
 There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more honestly-derived non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
 
-More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>K<sub>d</sub> = NormalizeX(8 r K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
+More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>s<sub>sr</sub> = NormalizeX(8 r K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
 
 ### 9.2 Unlinkability
 
@@ -615,6 +615,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Rerandomizable RingCT* - An abstraction of FCMP++ defined in this document that allows the formalization of different security properties without knowledge of the underlying proving system
 - *RingCT* - A cryptocurrency consensus protocol that iterated on Cryptonote by introducing hidden amounts by way of amount commitments
 - *Self-send Enote* - An enote constructed by wallet intended to be received by the same wallet, either internal or external
+- *Special Enote* - An external self-send enote within a 2-output transaction
 - *Subaddress* - An address form introduced by Monero contributors which allows for a single wallet to generate an arbitrary number of unlinkable addresses without affecting scanning speed
 - *Transaction* - An atomic modification to the ledger containing key images, transaction outputs, and other unstructured data
 - *Transaction Output* - A distinct tuple of an elliptic curve point and amount commitment or plaintext amount which is contained in a list in a transaction
