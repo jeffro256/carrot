@@ -117,7 +117,7 @@ Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256
 
 #### Point conversion
 
-We define a function `ConvertPubkeyE(K)` that can transform an Ed25519 curve point into a Curve25519 point, preserving group structure. The conversion is done with the equivalence `x = (v + 1) / (1 - v)`, where `v` is the Ed25519 y-coordinate and `x` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered. Since the y coordinate is ignored during serialization of Curve25519 points, the conversion should be unambiguous, with only one result.
+We define a function `ConvertPointE(K)` that can transform an Ed25519 curve point into a Curve25519 point, preserving group structure. The conversion is done with the equivalence `x = (v + 1) / (1 - v)`, where `v` is the Ed25519 y-coordinate and `x` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered. Since the y coordinate is ignored during serialization of Curve25519 points, the conversion should be unambiguous, with only one result.
 
 #### Private keys
 
@@ -351,7 +351,7 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 | Transfer Type            | <code>D<sub>e</sub></code> Derivation                                |
 |--------------------------|----------------------------------------------------------------------|   
 | Normal, to main address  | <code>d<sub>e</sub> B</code>                                         |
-| Normal, to subaddress    | <code>d<sub>e</sub> ConvertPubkeyE(K<sub>s</sub><sup>j</sup>)</code> |
+| Normal, to subaddress    | <code>d<sub>e</sub> ConvertPointE(K<sub>s</sub><sup>j</sup>)</code> |
 | Internal                 | random element of 𝔾<sub>M</sub>                                      |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
@@ -363,7 +363,7 @@ The shared secret <code>s<sub>sr</sub></code> is used indirectly to encrypt/exte
 
 |                          | Derivation                                                            |
 |------------------------- | ----------------------------------------------------------------------|
-|Sender, external, normal  |<code>8 d<sub>e</sub> ConvertPubkeyE(K<sub>v</sub><sup>j</sup></code>) |
+|Sender, external, normal  |<code>8 d<sub>e</sub> ConvertPointE(K<sub>v</sub><sup>j</sup></code>) |
 |Sender, external, special |<code>8 k<sub>v</sub> D<sub>e</sub></code>                             |
 |Recipient, external       |<code>8 k<sub>v</sub> D<sub>e</sub></code>                             |
 |Internal                  |<code>s<sub>vb</sub></code>                                            |
@@ -431,7 +431,7 @@ Special enotes are external self-send enotes in a 2-out transaction. The sender 
 
 Every transaction that spends funds from the wallet must produce at least one self-send (not necessarily internal) enote, typically a change enote. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
-Even if a sender did not want to follow this rule, they would find that sending to two different, not-sender-owned addresses in a 2-out transaction is computationally intractable. During balance recovery, the recipient will attempt to recompute <code>D<sub>e</sub> ?= d<sub>e</sub> ConvertPubkeyE(K<sub>s</sub><sup>j</sup>)</code>. As such, sending to two external addresses would require finding `a, b` such that `a X = b Y` without knowing the discrete log between `X` and `Y`. This amounts to solving the discrete logarithm problem.
+Even if a sender did not want to follow this rule, they would find that sending to two different, not-sender-owned addresses in a 2-out transaction is computationally intractable. During balance recovery, the recipient will attempt to recompute <code>D<sub>e</sub> ?= d<sub>e</sub> ConvertPointE(K<sub>s</sub><sup>j</sup>)</code>. As such, sending to two external addresses would require finding `a, b` such that `a X = b Y` without knowing the discrete log between `X` and `Y`. This amounts to solving the discrete logarithm problem.
 
 However, a sender may skirt this rule if the sender sends to the same to address twice in a 2-out transaction as long as they set <code>anchor<sub>norm</sub></code> equal to one another. This will result in the same ephemeral private key <code>d<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code>, and thus ephemeral pubkey, recomputed by the recipient each time on the two enotes.
 
@@ -479,11 +479,11 @@ We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<s
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
 1. Let <code>d<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
-1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(d<sub>e</sub>' K<sub>base</sub>)</code>
+1. Let <code>D<sub>e</sub>' = ConvertPointE(d<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Set `pid' = nullpid`
 1. Let <code>d<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
-1. Let <code>D<sub>e</sub>' = ConvertPubkeyE(d<sub>e</sub>' K<sub>base</sub>)</code>
+1. Let <code>D<sub>e</sub>' = ConvertPointE(d<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| D<sub>e</sub> \|\| enote_nonce \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
 1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
@@ -542,7 +542,7 @@ For any <code>K<sub>o</sub></code>, it is computationally intractable to find tw
 
 There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more honestly-derived non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
 
-More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>s<sub>sr</sub> = 8 r ConvertPubkeyE(K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
+More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>s<sub>sr</sub> = 8 r ConvertPointE(K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
 
 ### Unlinkability
 
