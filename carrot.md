@@ -275,9 +275,9 @@ Notice that generating new subaddresses this way requires knowledge of <code>k<s
 Under the new key hierarchy, the two public keys of the subaddress at index `j` are constructed as:
 
 * <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("jamtis_address_index_generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
-* <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("carrot_subaddress_scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
-* <code>K<sub>s</sub><sup>j</sup> = k<sub>a</sub><sup>j</sup> K<sub>s</sub></code>
-* <code>K<sub>v</sub><sup>j</sup> = k<sub>a</sub><sup>j</sup> K<sub>v</sub></code>
+* <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("carrot_subaddress_scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>K<sub>s</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>s</sub></code>
+* <code>K<sub>v</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>v</sub></code>
 
 The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
 
@@ -421,7 +421,7 @@ Self-send enotes are any enote created by the wallet that the enote is also dest
 
 Enotes which are destined for the sending wallet and use a symmetric secret instead of a ECDH exchange are called "internal enotes". The most common type are `"change"` enotes, but internal `"payment"` enotes are also possible. For typical 2-output transactions, an internal enote reuses the same value of <code>D<sub>e</sub></code> as the other enote.
 
-As specified above, these enotes use <code>s<sub>vb</sub></code> as the value for <code>s<sub>sr</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>s<sub>sr</sub></code> and internal <code>s<sub>sr</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication and multiplication by eight in Ed25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
+As specified above, these enotes use <code>s<sub>vb</sub></code> as the value for <code>s<sub>sr</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>s<sub>sr</sub></code> and internal <code>s<sub>sr</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication and multiplication by eight in Curve25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
 
 #### 7.8.2 Special enotes
 
@@ -501,9 +501,9 @@ The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>sub_ext</sub><sup
 
 #### 8.2.2 New key hierarchy key images
 
-If `j ≠ 0`, then let <code>k<sub>a</sub><sup>j</sup> = ScalarDerive("carrot_subaddress_scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>a</sub><sup>j</sup> = 1</code>.
+If `j ≠ 0`, then let <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("carrot_subaddress_scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>sub_scal</sub><sup>j</sup> = 1</code>.
 
-The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>a</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
+The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>sub_scal</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
 ### 8.3 Handling key images and calculating balance
 
