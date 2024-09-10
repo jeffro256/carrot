@@ -291,37 +291,48 @@ The payment ID `pid` is encrypted by exclusive or (XOR) with an encryption mask 
 
 Every 2-output transaction has one ephemeral public key <code>D<sub>e</sub></code>. Transactions with `N > 2` outputs have `N` ephemeral public keys (one for each output). Coinbase transactions always have one key per output.
 
-### 7.2 Enote format
+### 7.2 Input Context
 
-Each enote represents an amount `a` sent to an address <code>(is_main, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
+For each transaction, we assign a value `input_context`, whose purpose is to be unique for every single transaction within a valid ledger. We define this value as follows:
 
-An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* <code>anchor<sub>enc</sub></code>, and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
+| transaction type | `input_context`                                   |
+|----------------- |-------------------------------------------------- |
+| coinbase         | <code>"C" \|\| IntToBytes256(block height)</code> |
+| non-coinbase     | <code>"R" \|\| first spent key image</code>       |
 
-#### 7.2.1 The output pubkey
+This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. Indirectly binding output pubkeys to this value helps to mitigate burning bugs.
+
+### 7.3 Enote format
+
+Each enote represents an amount `a` and payment ID `pid` sent to an address <code>(is_main, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
+
+An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted Janus anchor <code>anchor<sub>enc</sub></code>, and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
+
+#### 7.3.1 The output pubkey
 
 The output pubkey, sometimes referred to as the "one-time address", is a part of the underlying Rerandomizable RingCT transaction output. Knowledge of the opening of this point allows for spending of the enote. Partial opening knowledge allows for calculating the key image of this enote, signalling in which location it was spent.
 
-#### 7.2.2 Amount commitment
+#### 7.3.2 Amount commitment
 
 The amount commitment is also part of the underlying Rerandomizable RingCT transaction output. This Pederson commitment should open up to the decrypted value in <code>a<sub>enc</sub></code> and the blinding factor derived from the shared secret. Coinbase transactions have this field omitted.
 
-#### 7.2.3 Amount
+#### 7.3.3 Amount
 
 In non-coinbase transactions, the amount `a` is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>a</sub></code>. In coinbase transactions, `a` is included as part of the enote in plaintext.
 
-#### 7.2.4 View tags
+#### 7.3.4 View tags
 
 The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the view key. This view tag is used to fail quickly in the scan process for enotes not intended for the current wallet. The bit size of 24 was chosen as the fixed size because of Jamtis requirements.
 
-#### 7.2.5 Janus anchor
+#### 7.3.5 Janus anchor
 
 The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor</code> is set to an indirect HMAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to a wallet without performing a Janus attack.
 
-### 7.3 Enote derivations
+### 7.4 Enote derivations
 
 The enote components are derived from the shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx</code>. The definitions of these secrets are described in a later section.
 
-#### 7.3.1 Intermediate Values
+#### 7.4.1 Intermediate Values
 
 | Symbol | Name   | Derivation |
 |-----------|--------|-----------|
@@ -337,7 +348,7 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
 
-#### 7.3.2 Component Values
+#### 7.4.2 Component Values
 
 | Symbol                           | Name                  | Derivation |
 |----------------------------------|-----------------------|------------|
@@ -348,7 +359,7 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the enote ty
 |<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
-### 7.4 Ephemeral pubkey construction
+### 7.5 Ephemeral pubkey construction
 
 The ephemeral pubkey <code>D<sub>e</sub></code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to, how many outputs are in the transaction, and whether we are deriving on the internal or external path. Here "special" means an *external self-send* enote in
 a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
@@ -362,7 +373,7 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 
 <code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are "special", then no specific derivation of <code>D<sub>e</sub></code> is required, and <code>D<sub>e</sub></code> should be set to a random element of 𝔾<sub>M</sub>.
 
-### 7.5 Sender-receiver shared secrets
+### 7.6 Sender-receiver shared secrets
 
 The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx</sup></code> are used to encrypt/extend all components of Carrot transactions. Most components (except the view tag for performance reasons) use <code>s<sub>sr</sub><sup>ctx</sup></code> to encrypt components.
 
@@ -376,44 +387,35 @@ The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx<
 
 Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
 
-Here `input_context` is defined as:
-
-| transaction type | `input_context`                                   |
-|----------------- |-------------------------------------------------- |
-| coinbase         | <code>"C" \|\| IntToBytes256(block height)</code> |
-| non-coinbase     | <code>"R" \|\| first spent key image</code>       |
-
-The purpose of `input_context` is to make <code>s<sub>sr</sub><sup>ctx</sup></code> unique for every transaction. This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. This aspect helps protect against the burning bug.
-
-### 7.6 Janus outputs
+### 7.7 Janus outputs
 
 In case of a Janus attack, the recipient will derive different values of the enote ephemeral pubkey <code>D<sub>e</sub></code> and Janus `anchor`, and thus will not recognize the output.
 
-### 7.7 Self-send enotes
+### 7.8 Self-send enotes
 
 Self-send enotes are any enote created by the wallet that the enote is also destined to.
 
-#### 7.7.1 Internal enotes
+#### 7.8.1 Internal enotes
 
 Enotes which are destined for the sending wallet and use a symmetric secret instead of a ECDH exchange are called "internal enotes". The most common type are `"change"` enotes, but internal `"payment"` enotes are also possible. For typical 2-output transactions, an internal enote reuses the same value of <code>D<sub>e</sub></code> as the other enote.
 
 As specified above, these enotes use <code>s<sub>vb</sub></code> as the value for <code>s<sub>sr</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>s<sub>sr</sub></code> and internal <code>s<sub>sr</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication and multiplication by eight in Ed25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
 
-#### 7.7.2 Special enotes
+#### 7.8.2 Special enotes
 
 Special enotes are external self-send enotes in a 2-out transaction. The sender employs different shared secret derivations and Janus anchor derivations than a regular external enote.
 
-#### 7.7.3 Mandatory self-send enote rule
+#### 7.8.3 Mandatory self-send enote rule
 
 Every transaction that spends funds from the wallet must produce at least one self-send (not necessarily internal) enote, typically a change enote. If there is no change left, an enote is added with a zero amount. This ensures that all transactions relevant to the wallet have at least one output. This allows for remote-assist "light weight" wallet servers to serve *only* the transactions relevant to the wallet, including any transaction that has spent key images. This rule also helps to optimize full wallet multi-threaded scanning by reducing state reuse.
 
-#### 7.7.4 One payment, one change rule
+#### 7.8.4 One payment, one change rule
 
 In a 2-out transaction with two internal or two special enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
 
 In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>s<sub>sr</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
 
-### 7.8 Coinbase transactions
+### 7.9 Coinbase transactions
 
 Coinbase transactions are not considered to be internal.
 

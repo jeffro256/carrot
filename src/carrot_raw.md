@@ -291,11 +291,22 @@ The payment ID `pid` is encrypted by exclusive or (XOR) with an encryption mask 
 
 Every 2-output transaction has one ephemeral public key <code>D<sub>e</sub></code>. Transactions with `N > 2` outputs have `N` ephemeral public keys (one for each output). Coinbase transactions always have one key per output.
 
+### Input Context
+
+For each transaction, we assign a value `input_context`, whose purpose is to be unique for every single transaction within a valid ledger. We define this value as follows:
+
+| transaction type | `input_context`                                   |
+|----------------- |-------------------------------------------------- |
+| coinbase         | <code>"C" \|\| IntToBytes256(block height)</code> |
+| non-coinbase     | <code>"R" \|\| first spent key image</code>       |
+
+This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. Indirectly binding output pubkeys to this value helps to mitigate burning bugs.
+
 ### Enote format
 
-Each enote represents an amount `a` sent to an address <code>(is_main, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
+Each enote represents an amount `a` and payment ID `pid` sent to an address <code>(is_main, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>.
 
-An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted *janus anchor* <code>anchor<sub>enc</sub></code>, and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
+An enote contains the output public key <code>K<sub>o</sub></code>, the 3-byte view tag `vt`, the amount commitment <code>C<sub>a</sub></code>, encrypted Janus anchor <code>anchor<sub>enc</sub></code>, and encrypted amount <code>a<sub>enc</sub></code>. For coinbase transactions, the amount commitment <code>C<sub>a</sub></code> is omitted and the amount is not encrypted.
 
 #### The output pubkey
 
@@ -375,15 +386,6 @@ The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx<
 |Internal               |<code>s<sub>vb</sub></code>                                            |
 
 Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
-
-Here `input_context` is defined as:
-
-| transaction type | `input_context`                                   |
-|----------------- |-------------------------------------------------- |
-| coinbase         | <code>"C" \|\| IntToBytes256(block height)</code> |
-| non-coinbase     | <code>"R" \|\| first spent key image</code>       |
-
-The purpose of `input_context` is to make <code>s<sub>sr</sub><sup>ctx</sup></code> unique for every transaction. This uniqueness is guaranteed by consensus rules: there is exactly one coinbase transaction per block height, and all key images are unique. This aspect helps protect against the burning bug.
 
 ### Janus outputs
 
