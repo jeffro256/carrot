@@ -326,7 +326,7 @@ The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the v
 
 #### 7.3.5 Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor</code> is set to an indirect HMAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to a wallet without performing a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code> is constructed properly. In *special* enotes, <code>anchor</code> is set to an HMAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to the same wallet without performing a Janus attack.
 
 ### 7.4 Enote derivations
 
@@ -343,7 +343,7 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 |<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
-|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
+|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
 |<code>d<sub>e</sub></code>|ephemeral private key| <code>d<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
@@ -459,8 +459,8 @@ We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<s
 1. Let <code>d<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = ConvertPointE(d<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
-1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
-1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
+1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
+1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code>
 1. Return successfully!
 
 ### 8.2 Determining spendability and computing key images
@@ -493,7 +493,7 @@ The term "honest receiver" below means an entity with certain private key materi
 
 #### 9.1.1 Completeness
 
-An honest sender who sends amount `a` and payment ID `pid` to address <code>(K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>, internally or externally, can be guaranteed that the honest receiver who derived that address will:
+An honest sender who sends amount `a` and payment ID `pid` to address <code>(is_main, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup>)</code>, internally or externally, can be guaranteed that the honest receiver who derived that address will:
 
 1. Recover the same <code>a, pid, K<sub>s</sub><sup>j</sup>, K<sub>v</sub><sup>j</sup></code>
 2. Recover `x, y, z` such that <code>C<sub>a</sub> = z G + a H</code> and <code>K<sub>o</sub> = x G + y T</code>
