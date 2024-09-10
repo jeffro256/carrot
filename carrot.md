@@ -277,7 +277,7 @@ Under the new key hierarchy, the two public keys of the subaddress at index `j` 
 
 The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
 
-## 7. Transaction protocol
+## 7. Addressing protocol
 
 ### 7.1 Transaction global fields
 
