@@ -128,7 +128,7 @@ Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. Th
 
 ## 4. Rerandomizable RingCT abstraction
 
-Here we formally define an abstraction of the FCMP++ consensus layer called *Rerandomizable RingCT* which lays out the requirements that Carrot needs. All elliptic curve arithmetic occurs on Ed25519.
+Here we formally define an abstraction of the FCMP++ consensus layer called *Rerandomizable RingCT* which lays out the requirements that Carrot needs. All elliptic curve arithmetic occurs on Ed25519. When we use the term "list" in this section, we refer to a sequence of elements where the order of elements is encoded and preserved. Thus, the list `{A, B}` is distinct from the list `{B, A}`.
 
 ### 4.1 Creating a transaction output
 
@@ -140,11 +140,11 @@ To spend this output, the recipient must know `x, y, z, a` such that <code>K<sub
 
 ### 4.3 Transaction model
 
-Transactions contain a list of outputs, a list of key images, and additional unstructured data. All key images must be unique within a transaction.
+Transactions contain a list of outputs, a list of key images, and additional unstructured data. All key images must be unique within a transaction. Similarly, all output pubkeys must be unique within a transaction.
 
 ### 4.4 Ledger model
 
-The ledger can be modeled as an append-only list of transactions. Transactions can only contain key images of transaction outputs of "lower" positions within the ledger list. No two key images in any transaction in the ledger are ever equal to each other. In practice, the ledger will contain additional cryptographic proofs that verify the integrity of the data within each transaction, but those can largely be ignored for this addressing protocol.
+The ledger can be modeled as an append-only list of transactions. Transactions can only contain key images of transaction outputs of "lower" positions within the ledger list. No two key images in any transaction in the ledger may ever be equal to one another. In practice, the ledger will contain additional cryptographic proofs that verify the integrity of the data within each transaction, but those can largely be ignored for this addressing protocol.
 
 ## 5. Wallets
 
