@@ -117,12 +117,7 @@ Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256
 
 #### 3.3.3 Point conversion
 
-We define two functions that can transform points between the two curves:
-
-1. `ConvertPointM(D)` takes a Curve25519 point `D` and outputs the corresponding Ed25519 point `K` with an even-valued `x` coordinate.
-2. `ConvertPointE(K)` takes an Ed25519 point `K` and outputs the corresponding Curve25519 point `D`.
-
-The conversions between points on the curves are done with the equivalence `y = (u - 1) / (u + 1)`, where `y` is the Ed25519 y-coordinate and `u` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered.
+We define a function `ConvertPointE(K)` that can transform an Ed25519 curve point into a Curve25519 point, preserving group structure. The conversion is done with the equivalence `x = (v + 1) / (1 - v)`, where `v` is the Ed25519 y-coordinate and `x` is the Curve25519 x-coordinate. Notice that the x-coordinates of Ed25519 points and the y-coordinates of Curve25519 points are not considered. Since the y coordinate is ignored during serialization of Curve25519 points, the conversion should be unambiguous, with only one result.
 
 #### 3.3.4 Private keys
 
