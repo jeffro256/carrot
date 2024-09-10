@@ -359,7 +359,7 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the enote ty
 |<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
-### Ephemeral pubkey construction
+### Ephemeral public key
 
 The ephemeral pubkey <code>D<sub>e</sub></code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to, how many outputs are in the transaction, and whether we are deriving on the internal or external path. Here "special" means an *external self-send* enote in
 a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
