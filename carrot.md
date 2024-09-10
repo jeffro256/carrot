@@ -355,7 +355,7 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the enote ty
 |<code>K<sub>o</sub></code>        | output pubkey         | <code>K<sub>o</sub> = K<sub>s</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code> |
 |<code>C<sub>a</sub></code>        | amount commitment     | <code>C<sub>a</sub> = k<sub>a</sub> G + a H</code> |
 |<code>a<sub>enc</sub></code>      | encrypted amount      | <code>a<sub>enc</sub> = a ⊕ m<sub>a</sub></code>   |
-|`vt`                              |view tag               | <code>vt = SecretDerive("jamtis_secondary_view_tag" \|\| s<sub>sr</sub> \|\| K<sub>o</sub>)</code> |
+|`vt`                              |view tag               | <code>vt = SecretDerive("jamtis_secondary_view_tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code> |
 |<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
@@ -429,7 +429,7 @@ If this enote scan returns successfully, we will be able to recover the address 
 
 We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
 
-1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| s<sub>sr</sub> \|\| K<sub>o</sub>)</code>
+1. Let <code>vt' = SecretDerive("jamtis_secondary_view_tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code>
 1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
 1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("jamtis_sender_receiver_secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
 1. If a coinbase enote, then let `a' = a`, let <code>k<sub>a</sub>' = 1</code>, and skip to step 13
