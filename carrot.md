@@ -320,7 +320,7 @@ The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the v
 
 #### 7.2.5 Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>k<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor</code> is set to an indirect HMAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to a wallet without performing a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code>. In *special* enotes, <code>anchor</code> is set to an indirect HMAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to a wallet without performing a Janus attack.
 
 ### 7.3 Enote derivations
 
@@ -338,7 +338,7 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 |<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
 |<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
-|<code>k<sub>e</sub></code>|ephemeral private key| <code>k<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
+|<code>d<sub>e</sub></code>|ephemeral private key| <code>d<sub>e</sub> = ScalarDerive("carrot_sending_key_normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the enote type. `pid` is set to `nullpid` (8 bytes of zeros) when not sending to an integrated address.
 
@@ -360,8 +360,8 @@ a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
 
 | Transfer Type            | <code>D<sub>e</sub></code> Derivation                                |
 |--------------------------|----------------------------------------------------------------------|   
-| Normal, to main address  | <code>k<sub>e</sub> B</code>                                         |
-| Normal, to subaddress    | <code>k<sub>e</sub> ConvertPointE(K<sub>s</sub><sup>j</sup>)</code> |
+| Normal, to main address  | <code>d<sub>e</sub> B</code>                                         |
+| Normal, to subaddress    | <code>d<sub>e</sub> ConvertPointE(K<sub>s</sub><sup>j</sup>)</code> |
 | Internal                 | random element of 𝔾<sub>M</sub>                                      |
 | Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
 
@@ -375,7 +375,7 @@ The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx<
 
 |                       | Derivation                                                            |
 |---------------------- | ----------------------------------------------------------------------|
-|Sender, external       |<code>8 k<sub>e</sub> ConvertPointE(K<sub>v</sub><sup>j</sup></code>) |
+|Sender, external       |<code>8 d<sub>e</sub> ConvertPointE(K<sub>v</sub><sup>j</sup></code>) |
 |Recipient, external    |<code>8 k<sub>v</sub> D<sub>e</sub></code>                             |
 |Internal               |<code>s<sub>vb</sub></code>                                            |
 
@@ -455,12 +455,12 @@ We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<s
 1. Let <code>anchor' = anchor<sub>enc</sub> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
-1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
-1. Let <code>D<sub>e</sub>' = ConvertPointE(k<sub>e</sub>' K<sub>base</sub>)</code>
+1. Let <code>d<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>D<sub>e</sub>' = ConvertPointE(d<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Set `pid' = nullpid`
-1. Let <code>k<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
-1. Let <code>D<sub>e</sub>' = ConvertPointE(k<sub>e</sub>' K<sub>base</sub>)</code>
+1. Let <code>d<sub>e</sub>' = ScalarDerive("carrot_sending_key_normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>D<sub>e</sub>' = ConvertPointE(d<sub>e</sub>' K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Let <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
 1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code> (this was an attempted Janus attack!)
@@ -509,7 +509,7 @@ If an honest receiver recovers `x` and `y` for an enote such that <code>K<sub>o<
 
 #### 9.1.3 Amount Commitment Binding
 
-If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <code>C<sub>a</sub> = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>k<sub>e</sub></code> will also be able to find `z`.
+If an honest receiver recovers `z` and `a` for an non-coinbase enote such that <code>C<sub>a</sub> = z G + a H</code>, then it is guaranteed within a security factor that no other entity without knowledge of <code>k<sub>v</sub></code> or <code>d<sub>e</sub></code> will also be able to find `z`.
 
 #### 9.1.4 Burning Bug Resistance
 
@@ -570,7 +570,7 @@ Carrot ephemeral pubkeys are indistinguishable from random Curve25519 pubkeys. T
 1. Sample `r` from uniform integer distribution `[0, ℓ)`.
 2. Set <code>D<sub>e</sub> = r B</code>
 
-Note that in Carrot ephemeral pubkey construction, the ephemeral private key <code>k<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
+Note that in Carrot ephemeral pubkey construction, the ephemeral private key <code>d<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
 
 #### 9.4.3 Other enote component random indistinguishability
 
