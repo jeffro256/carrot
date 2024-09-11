@@ -132,7 +132,7 @@ Here we formally define an abstraction of the FCMP++ consensus layer called *Rer
 
 ### Creating a transaction output
 
-Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create a valid transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Coinbase transactions have a plaintext integer amount `a` instead of the amount commitment <code>C<sub>a</sub></code>.
+Transaction outputs are defined as the two points <code>(K<sub>o</sub>, C<sub>a</sub>)</code>. To create a valid transaction output, the sender must know `z, a` such that <code>C<sub>a</sub> = z G + a H</code> where <code>0 ≤ a < 2<sup>64</sup></code>. Coinbase transactions have a plaintext integer amount `a` instead of the amount commitment <code>C<sub>a</sub></code>, which is implied to be <code>C<sub>a</sub> = G + a H</code>.
 
 ### Spending a transaction output
 
@@ -337,10 +337,10 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 | Symbol | Name   | Derivation |
 |-----------|--------|-----------|
 |<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("jamtis_commitment_mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_g" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("jamtis_encryption_mask_j'" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("jamtis_encryption_mask_a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("jamtis_encryption_mask_pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
 |<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("carrot_janus_anchor_special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
@@ -411,9 +411,9 @@ Every transaction that spends funds from the wallet must produce at least one se
 
 #### One payment, one change rule
 
-In a 2-out transaction, one enote's `enote_type` must be `"payment"`, and the other must be `"change"`.
+In a 2-out transaction with two internal or two special enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
 
-In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>s<sub>sr</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is not allowed by our definition of Rerandomizable RingCT. However, note that the output pubkey extensions bind to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
+In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>s<sub>sr</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
 
 ### Coinbase transactions
 
@@ -444,8 +444,8 @@ We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<s
 1. Let <code>k<sub>a</sub>' = ScalarDerive("jamtis_commitment_mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' ≠ C<sub>a</sub></code>, then <code><b>ABORT</b></code>
-1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_g" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
-1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
+1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_g" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("jamtis_key_extension_t" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
 1. Let <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
 1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 36
