@@ -18,25 +18,21 @@ To tackle privacy shortcomings with ring signatures, there is a consensus protoc
 
 ## 2. New Features
 
-### 2.1 Address generator
+### 2.1 All wallets
 
-This tier is intended for merchant point-of-sale terminals. It can generate addresses on demand, but otherwise has no access to the wallet (i.e. it cannot recognize any payments in the blockchain).
+Carrot immediately brings these features to both newly generated wallets and existing wallets.
 
-### 2.2 Payment validator wallets
+#### 2.1.1 Address-conditional forward secrecy
 
-Carrot supports view-incoming-only wallets that can verify that an external payment was received into the wallet, without the ability to see where those payment enotes were spent, or spend it themselves. But unlike old Monero view-only wallets, a Carrot payment validator wallet cannot see *"internal"* change enotes.
+As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), as long as the observer does not know receiver's addresses.
 
-### 2.3 Full view-only wallets
-
-Carrot supports full view-only wallets that can identify spent outputs (unlike legacy view-only wallets), so they can display the correct wallet balance and list all incoming and outgoing transactions.
-
-### 2.4 Janus attack mitigation
+#### 2.1.2 Janus attack mitigation
 
 A Janus attack [[4](https://web.getmonero.org/2019/10/18/subaddress-janus.html)] is a targeted attack that aims to determine if two addresses A, B belong to the same wallet. Janus outputs are crafted in such a way that they appear to the recipient as being received to the wallet address B, while secretly using a key from address A. If the recipient confirms the receipt of the payment, the sender learns that they own both addresses A and B.
 
 Carrot prevents this attack by allowing the recipient to recognize a Janus output.
 
-### 2.5 Stateless burning bug mitigation
+#### 2.1.3 Stateless burning bug mitigation
 
 The burning bug [[5](https://www.getmonero.org/2018/09/25/a-post-mortum-of-the-burning-bug.html)] is a undesirable result of Monero's old scan process wherein if an exploiter creates a transaction with the same ephemeral pubkey, output pubkey, and transaction output index as an existing transaction, a recipient will scan both instances of these enotes as "owned" and interpret their balance as increasing. However, since key images are linked to output pubkeys, the receiver can only spend one of these enotes, "burning" the other. If the exploiter creates an enote with amount `a = 0`, and the receiver happens to spend that enote first, then the receiver burns all of the funds in their original enote with only a tiny fee cost to the exploiter!
 
@@ -46,17 +42,29 @@ The original Jamtis [[7](https://gist.github.com/tevador/50160d160d24cfc6c52ae02
 
 Carrot prevents this attack statelessly in the same manner.
 
-### 2.6 Address-conditional forward secrecy
+#### 2.1.4 Payment ID confirmation
 
-As a result of leveraging the FCMP++ consensus protocol, Carrot has the ability to hide all transaction details (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), as long as the observer does not know receiver's addresses.
+Payment IDs are confirmed by a cryptographic hash, which gives integrated address payment processors better guarantees, provides better UX, and allows many-output batched transactions to unambiguously include an integrated address destination.
 
-### 2.7 Internal forward secrecy
+### 2.2 New wallets only
+
+These features are only available to wallets generated with the newly defined account key hierarchy. Existing Monero wallets will not inherit these features, unfortunately.
+
+#### 2.2.1 Internal forward secrecy
 
 Enotes that are sent "internally" to one's own wallet will have all transactions details hidden (sender, receiver, amount) from third-parties with the ability to break the security of elliptic curves (e.g. quantum computers), even if the observer has knowledge of the receiver's addresses.
 
-### 2.8 Payment ID confirmation
+#### 2.2.2 Address generator tier
 
-Payment IDs are confirmed by a cryptographic hash, which gives integrated address payment processors better guarantees, provides better UX, and allows many-output batched transactions to unambiguously include an integrated address destination.
+This tier is intended for merchant point-of-sale terminals. It can generate addresses on demand, but otherwise has no access to the wallet (i.e. it cannot recognize any payments in the blockchain).
+
+#### 2.2.3 Payment validator tier
+
+Carrot supports view-incoming-only wallets that can verify that an external payment was received into the wallet, without the ability to see where those payment enotes were spent, or spend it themselves. But unlike old Monero view-only wallets, a Carrot payment validator wallet cannot see *"internal"* change enotes.
+
+#### 2.2.4 Full view-only tier
+
+Carrot supports full view-only wallets that can identify spent outputs (unlike legacy view-only wallets), so they can display the correct wallet balance and list all incoming and outgoing transactions, without the ability to spend anything.
 
 ## 3. Notation
 
