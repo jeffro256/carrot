@@ -233,7 +233,7 @@ This tier provides the wallet with the ability to see all external payments and 
 
 #### View-All
 
-This is a full view-only wallet than can see all external and internal payment and change enotes, as well as where they are spent (and thus can calculate the correct wallet balance).
+This is a full view-only wallet that can see all external and internal payment and change enotes, as well as where they are spent (and thus can calculate the correct wallet balance).
 
 #### Master wallet (Master)
 
