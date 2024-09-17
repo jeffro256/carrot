@@ -144,7 +144,7 @@ Transactions contain a list of outputs, a list of key images, and additional uns
 
 ### Ledger model
 
-The ledger can be modeled as an append-only list of transactions. Transactions can only contain key images of transaction outputs of "lower" positions within the ledger list. No two key images in any transaction in the ledger may ever be equal to one another. In practice, the ledger will contain additional cryptographic proofs that verify the integrity of the data within each transaction, but those can largely be ignored for this addressing protocol.
+The ledger can be modeled as an append-only list of transactions. Transactions can only contain key images of transaction outputs of "lower" positions within the ledger list. No two key images in the ledger may ever be equal to one another. In practice, the ledger will contain additional cryptographic proofs that verify the integrity of the data within each transaction, but those can largely be ignored for this addressing protocol.
 
 ## Wallets
 
