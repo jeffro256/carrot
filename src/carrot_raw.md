@@ -367,10 +367,11 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the human-me
 |<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
+The view tag binds to `input_context` so that an external observer (i.e. someone without knowledge of <code>s<sub>sr</sub></code>) cannot simply copy <code>D<sub>e</sub></code>, <code>K<sub>o</sub></code>, and `vt` into a new transaction to force a view tag match. Binding to `input_context` causes the view tag of a copied enote to match with the same probability as any random, unrelated enote.
+
 ### Ephemeral public key
 
-The ephemeral pubkey <code>D<sub>e</sub></code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to, how many outputs are in the transaction, and whether we are deriving on the internal or external path. Here "special" means an *external self-send* enote in
-a 2-out transaction. "Normal" refers to non-special, non-internal enotes.
+The ephemeral pubkey <code>D<sub>e</sub></code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to, how many outputs are in the transaction, and whether we are deriving on the internal or external path. Here "special" means an *external self-send* enote in a 2-out transaction. "Normal" refers to non-special, external enotes.
 
 | Transfer Type            | <code>D<sub>e</sub></code> Derivation                                |
 |--------------------------|----------------------------------------------------------------------|   
