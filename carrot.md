@@ -211,11 +211,11 @@ s_m (master secret)
 
 | Key | Name | Derivation | Used to |
 |-----|------|------------|-------|
-|<code>k<sub>ps</sub></code> | prove-spend key         | <code>k<sub>ps</sub> = ScalarDerive("Jamtis prove-spend key" \|\| s<sub>m</sub>)</code>                  | spend enotes |
-|<code>s<sub>vb</sub></code> | view-balance secret     | <code>s<sub>vb</sub> = SecretDerive("Jamtis view-balance secret" \|\| s<sub>m</sub>)</code>              | find and decode received and outgoing enotes |
-|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("Jamtis generate-image key" \|\| s<sub>vb</sub>)</code>              | generate key images |
-|<code>k<sub>v</sub></code>  | incoming view key       | <code>k<sub>v</sub> = ScalarDerive("Carrot view key" \|\| s<sub>vb</sub>)</code>                         | find and decode received enotes |
-|<code>s<sub>ga</sub></code> | generate-address secret | <code>s<sub>ga</sub> = SecretDerive</sub>("Jamtis generate-address secret" \|\| s<sub>vb</sub>)</code> | generate addresses |
+|<code>k<sub>ps</sub></code> | prove-spend key         | <code>k<sub>ps</sub> = ScalarDerive("Carrot prove-spend key" \|\| s<sub>m</sub>)</code>                  | spend enotes                                 |
+|<code>s<sub>vb</sub></code> | view-balance secret     | <code>s<sub>vb</sub> = SecretDerive("Carrot view-balance secret" \|\| s<sub>m</sub>)</code>              | find and decode received and outgoing enotes |
+|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("Carrot generate-image key" \|\| s<sub>vb</sub>)</code>              | generate key images                          |
+|<code>k<sub>v</sub></code>  | incoming view key       | <code>k<sub>v</sub> = ScalarDerive("Carrot incoming view key" \|\| s<sub>vb</sub>)</code>                | find and decode received enotes              |
+|<code>s<sub>ga</sub></code> | generate-address secret | <code>s<sub>ga</sub> = SecretDerive</sub>("Carrot generate-address secret" \|\| s<sub>vb</sub>)</code>   | generate addresses                           |
 
 ### 5.3 New wallet public keys
 
@@ -286,7 +286,7 @@ Notice that generating new subaddresses this way requires knowledge of <code>k<s
 
 Under the new key hierarchy, the two public keys of the subaddress at index `j` are constructed as:
 
-* <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("Jamtis address index generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("Carrot address index generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
 * <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
 * <code>K<sub>s</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>s</sub></code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>v</sub></code>
@@ -352,12 +352,12 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 
 | Symbol | Name   | Derivation |
 |-----------|--------|-----------|
-|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("Jamtis commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type)</code> |
-|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Jamtis key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Jamtis key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("Jamtis encryption mask j'" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("Jamtis encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("Jamtis encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type)</code> |
+|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
 |<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
 |<code>d<sub>e</sub></code>|ephemeral private key| <code>d<sub>e</sub> = ScalarDerive("Carrot sending key normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
@@ -371,7 +371,7 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the human-me
 |<code>K<sub>o</sub></code>        | output pubkey         | <code>K<sub>o</sub> = K<sub>s</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code> |
 |<code>C<sub>a</sub></code>        | amount commitment     | <code>C<sub>a</sub> = k<sub>a</sub> G + a H</code> |
 |<code>a<sub>enc</sub></code>      | encrypted amount      | <code>a<sub>enc</sub> = a ⊕ m<sub>a</sub></code>   |
-|`vt`                              |view tag               | <code>vt = SecretDerive("Jamtis secondary view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code> |
+|`vt`                              |view tag               | <code>vt = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code> |
 |<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
@@ -402,7 +402,7 @@ The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx<
 |Recipient, external    |<code>8 k<sub>v</sub> D<sub>e</sub></code>                             |
 |Internal               |<code>s<sub>vb</sub></code>                                            |
 
-Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Jamtis sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
+Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
 
 ### 7.7 Janus outputs
 
@@ -447,28 +447,28 @@ If this enote scan returns successfully, we will be able to recover the address 
 We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
 
 1. If <code>s<sub>sr</sub> == 𝐼<sub>M</sub></code>, then <code><b>ABORT</b></code>
-1. Let <code>vt' = SecretDerive("Jamtis secondary view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code>
+1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code>
 1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
-1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Jamtis sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
+1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
 1. Set `enote_type' = "payment"`
 1. If a coinbase enote, then let `a' = a` and jump to step 16
-1. Let <code>m<sub>a</sub> = SecretDerive("Jamtis encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Let <code>a' = a<sub>enc</sub> ⊕ m<sub>a</sub></code>
-1. Let <code>k<sub>a</sub>' = ScalarDerive("Jamtis commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
+1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' == C<sub>a</sub></code>, then jump to step 16
 1. Set `enote_type' = "change"`
-1. Let <code>k<sub>a</sub>' = ScalarDerive("Jamtis commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
+1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' ≠ C<sub>a</sub></code>, then <code><b>ABORT</b></code>
-1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("Jamtis key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
-1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("Jamtis key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
+1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code>
 1. Let <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
 1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 36
-1. Let <code>m<sub>pid</sub> = SecretDerive("Jamtis encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Set <code>pid' = pid<sub>enc</sub> ⊕ m<sub>pid</sub></code>
-1. Let <code>m<sub>anchor</sub> = SecretDerive("Jamtis encryption mask j'" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
 1. Let <code>anchor' = anchor<sub>enc</sub> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
