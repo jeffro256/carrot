@@ -611,7 +611,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Coinbase Transaction* - A transaction which has no key images, and plaintext integer amounts instead of amount commitments in its outputs
 - *Cryptonote* - A cryptocurrency consensus protocol and addressing scheme which was the foundation for Monero's ledger interactions initially
 - *Cryptonote Address* - An address in the form described in the Cryptonote v2 whitepaper
-- *Enote* - A transaction output and its associated data unique to that transaction output
+- *Enote* - A transaction output as well as the associated data required to scan it
 - *Ephemeral Public Key* - An elliptic curve point associated to transaction outputs in order to hide enote details through a Diffie-Hellman key exchange
 - *External Enote* - An enote which was constructed by performing an asymmetric Elliptic Curve Diffie-Hellman key exchange against an address, main or subaddress
 - *FCMP++* - A proposed cryptocurrency consensus protocol to upgrade Monero's RingCT consensus protocol
