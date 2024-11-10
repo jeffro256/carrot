@@ -125,7 +125,7 @@ The twisted Edwards curve Ed25519 [[14](https://ed25519.cr.yp.to/ed25519-2011092
 |-----|----------|----------|
 | `G` | generator of 𝔾<sub>E</sub> | `5866666666666666666666666666666666666666666666666666666666666666`
 | `H` | <code>H<sub>p</sub><sup>1</sup>(G)</code> | `8b655970153799af2aeadc9ff1add0ea6c7251d54154cfa92c173a0dd39c1f94`
-| `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero generator T"))</code> | `966fc66b82cd56cf85eaec801c42845f5f408878d1561e00d3d7ded2794d094f`
+| `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero Generator T"))</code> | `966fc66b82cd56cf85eaec801c42845f5f408878d1561e00d3d7ded2794d094f`
 
 Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on Ed25519.
 
