@@ -78,6 +78,7 @@ Carrot supports full view-only wallets that can identify spent outputs (unlike l
 
 ### 3.1 Miscellaneous definitions
 
+1. The function `BytesToInt64(x)` deserializes a 64-bit little-endian integer from a 8-byte input.
 1. The function `BytesToInt256(x)` deserializes a 256-bit little-endian integer from a 32-byte input.
 1. The function `BytesToInt512(x)` deserializes a 512-bit little-endian integer from a 64-byte input.
 1. The function `IntToBytes32(x)` serializes an integer into a little-endian encoded 4-byte output.
@@ -86,10 +87,11 @@ Carrot supports full view-only wallets that can identify spent outputs (unlike l
 1. The function `RandBytes(x)` generates a random x-byte string.
 1. Concatenation is denoted by `||`.
 1. Bit-wise XOR (exclusive-or) is denoted by `⊕`.
+1. Python slice notation [[11](https://stackabuse.com/python-slice-notation-on-list/)] `X[:N]` is used to take the first `N` bytes of byte string `X`
 
 ### 3.2 Hash functions
 
-The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[11](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
+The function <code>H<sub>b</sub>(x)</code> with parameters `b, x`, refers to the Blake2b hash function [[12](https://eprint.iacr.org/2013/322.pdf)] initialized as follows:
 
 * The output length is set to `b` bytes.
 * Hashing is done in sequential mode.
@@ -100,7 +102,7 @@ The function `SecretDerive` is defined as:
 
 <code>SecretDerive(x) = H<sub>32</sub>(x)</code>
 
-The function `Keccak256(x)` refers to the Keccak function [[12](https://keccak.team/keccak.html)] parameterized with `r = 1088, c = 512, d = 256`.
+The function `Keccak256(x)` refers to the Keccak function [[13](https://keccak.team/keccak.html)] parameterized with `r = 1088, c = 512, d = 256`.
 
 ### 3.3 Elliptic curves
 
@@ -113,13 +115,13 @@ Both curves are birationally equivalent, so the subgroups 𝔾<sub>M</sub> and �
 
 #### 3.3.1 Curve25519
 
-The Montgomery curve Curve25519 [[13](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used. We denote the group additive identity element, or "point at infinity", for Curve25519 as 𝐼<sub>M</sub>.
+The Montgomery curve Curve25519 [[14](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used. We denote the group additive identity element, or "point at infinity", for Curve25519 as 𝐼<sub>M</sub>.
 
 Elements of 𝔾<sub>M</sub> are denoted by `D`, and are serialized as their x-coordinate. As is convention for Curve25519, the y coordinate is assumed to be the even value that satisfies the Montgomery curve equation. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>. In this specification, we always perform a "full" scalar multiplication on Curve25519 without scalar clamping, a notable difference from typical X25519 implementations. Using a clamped scalar multiplication will break completeness of the ECDH for existing pubkeys in addresses for which the private keys can be any element of **F**<sub>*ℓ*</sub>.
 
 #### 3.3.2 Ed25519
 
-The twisted Edwards curve Ed25519 [[14](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
+The twisted Edwards curve Ed25519 [[15](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
@@ -137,7 +139,7 @@ We define a function `ConvertPointE(K)` that can transform an Ed25519 curve poin
 
 #### 3.3.4 Private keys
 
-Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. These keys are not "clamped" [[15](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/)] like they would be in the X25519 [[16](https://cr.yp.to/ecdh.html)] protocol. Unfortunately, this somewhat slows down implementations of Curve25519 scalar-point multiplications, but it must be this way for backwards compatibility and on-chain indistinguishability. Private keys are derived using one of the two following functions:
+Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. These keys are not "clamped" [[16](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/)] like they would be in the X25519 [[17](https://cr.yp.to/ecdh.html)] protocol. Unfortunately, this somewhat slows down implementations of Curve25519 scalar-point multiplications, but it must be this way for backwards compatibility and on-chain indistinguishability. Private keys are derived using one of the two following functions:
 
 1. <code>ScalarDerive(x) = BytesToInt512(H<sub>64</sub>(x)) mod ℓ</code>
 1. <code>ScalarDeriveLegacy(x) = BytesToInt256(Keccak256(x)) mod ℓ</code>
@@ -355,11 +357,11 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 |<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type)</code> |
 |<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
-|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code> |
+|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:16]</code> |
+|<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
+|<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
-|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code> |
+|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)[:16]</code> |
 |<code>d<sub>e</sub></code>|ephemeral private key| <code>d<sub>e</sub> = ScalarDerive("Carrot sending key normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the human-meaningful tag that a sender wants to express to the recipient. However, `enote_type` must be equal to `"payment"` for coinbase enotes.
@@ -370,8 +372,8 @@ The variable `enote_type` is `"payment"` or `"change"` depending on the human-me
 |----------------------------------|-----------------------|------------|
 |<code>K<sub>o</sub></code>        | output pubkey         | <code>K<sub>o</sub> = K<sub>s</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code> |
 |<code>C<sub>a</sub></code>        | amount commitment     | <code>C<sub>a</sub> = k<sub>a</sub> G + a H</code> |
-|<code>a<sub>enc</sub></code>      | encrypted amount      | <code>a<sub>enc</sub> = a ⊕ m<sub>a</sub></code>   |
-|`vt`                              |view tag               | <code>vt = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code> |
+|<code>a<sub>enc</sub></code>      | encrypted amount      | <code>a<sub>enc</sub> = IntToBytes64(a) ⊕ m<sub>a</sub></code>   |
+|`vt`                              |view tag               | <code>vt = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)[:3]</code> |
 |<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
@@ -447,13 +449,13 @@ If this enote scan returns successfully, we will be able to recover the address 
 We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
 
 1. If <code>s<sub>sr</sub> == 𝐼<sub>M</sub></code>, then <code><b>ABORT</b></code>
-1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)</code>
+1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)[:3]</code>
 1. If `vt' ≠ vt`, then <code><b>ABORT</b></code>
 1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>
 1. Set `enote_type' = "payment"`
 1. If a coinbase enote, then let `a' = a` and jump to step 16
-1. Let <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
-1. Let <code>a' = a<sub>enc</sub> ⊕ m<sub>a</sub></code>
+1. Let <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code>
+1. Let <code>a' = BytesToInt64(a<sub>enc</sub> ⊕ m<sub>a</sub>)</code>
 1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' == C<sub>a</sub></code>, then jump to step 16
@@ -466,9 +468,9 @@ We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<s
 1. Let <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
 1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 36
-1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code>
 1. Set <code>pid' = pid<sub>enc</sub> ⊕ m<sub>pid</sub></code>
-1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)</code>
+1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:16]</code>
 1. Let <code>anchor' = anchor<sub>enc</sub> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
@@ -479,7 +481,7 @@ We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<s
 1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| input_context \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 36
-1. Let <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)</code>
+1. Let <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)[:16]</code>
 1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code>
 1. Return successfully!
 
@@ -505,7 +507,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## 9. Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[17](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
+Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[18](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### 9.1 Balance recovery security
 
@@ -606,7 +608,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 
 ## 11. Glossary
 
-- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[18](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
+- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[19](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
 - *Burning Bug Attack* - An attack where an exploiter duplicates an output pubkey and tricks the recipient into accepting both, even though only one can be spent
 - *Coinbase Transaction* - A transaction which has no key images, and plaintext integer amounts instead of amount commitments in its outputs
 - *Cryptonote* - A cryptocurrency consensus protocol and addressing scheme which was the foundation for Monero's ledger interactions initially
@@ -649,6 +651,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://github.com/monero-project/monero/pull/4438/files#diff-04cf14f64d2023c7f9cd7bd8e51dcb32ed400443c6a67535cb0105cfa2b62c3c
 1. https://gist.github.com/tevador/50160d160d24cfc6c52ae02eb3d17024
 1. https://gist.github.com/kayabaNerve/8066c13f1fe1573286ba7a2fd79f6100
+1. https://stackabuse.com/python-slice-notation-on-list/
 1. https://eprint.iacr.org/2013/322.pdf
 1. https://keccak.team/keccak.html
 1. https://cr.yp.to/ecdh/curve25519-20060209.pdf
