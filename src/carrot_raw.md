@@ -446,44 +446,44 @@ Miners should continue the practice of only allowing main addresses for the dest
 
 The enote scan process is a function which takes public enote information and returns successfully or not. If this enote scan returns successfully, we will be able to recover the address spend pubkey, amount, payment ID, and enote type. Additionally, a successful return guarantees that A) the enote is uniquely addressed to our account, B) Janus attacks are mitigated, and C) burning bug attacks due to duplicate output pubkeys are mitigated. Note, however, that a successful return does *NOT* guarantee that the enote is spendable (i.e. that the recipient will be able to recover `x, y` such that <code>K<sub>o</sub> = x G + y T</code>).
 
-The following values are part of the enote, and thus public: <u><code>input_context, D<sub>e</sub>, K<sub>o</sub>, C<sub>a</sub>, a<sub>enc</sub>, vt, anchor<sub>enc</sub>, pid<sub>enc</sub></code></u>. By contrast, the following values are private to each scanner: <code>k<sub>v</sub>, s<sub>vb</sub>, and K<sub>s</sub></code>. For clarity, we will denote public values with an <u>underline</u> in this section.
+The following values are part of the enote, and thus public: <ins><code>input_context, D<sub>e</sub>, K<sub>o</sub>, C<sub>a</sub>, a<sub>enc</sub>, vt, anchor<sub>enc</sub>, pid<sub>enc</sub></code></ins>. By contrast, the following values are private to each scanner: <code>k<sub>v</sub>, s<sub>vb</sub>, and K<sub>s</sub></code>. For readability, we will denote public values with an <ins>underline</ins> in this section.
 
 We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
 
 1. If <code>s<sub>sr</sub> == 𝐼<sub>M</sub></code>, then <code><b>ABORT</b></code>
-1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| <u>input_context</u> \|\| <u>K<sub>o</sub></u>)[:3]</code>
-1. If <code>vt' ≠ <u>vt</u></code>, then <code><b>ABORT</b></code>
-1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| <u>D<sub>e</sub></u> \|\| <u>input_context</u>)</code>
+1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins>)[:3]</code>
+1. If <code>vt' ≠ <ins>vt</ins></code>, then <code><b>ABORT</b></code>
+1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins>)</code>
 1. Set `enote_type' = "payment"`
 1. If a coinbase enote, then let `a' = a` and jump to step 16
-1. Let <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <u>K<sub>o</sub></u>)[:8]</code>
-1. Let <code>a' = BytesToInt64(<u>a<sub>enc</sub></u> ⊕ m<sub>a</sub>)</code>
+1. Let <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
+1. Let <code>a' = BytesToInt64(<ins>a<sub>enc</sub></ins> ⊕ m<sub>a</sub>)</code>
 1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
-1. If <code>C<sub>a</sub>' == <u>C<sub>a</sub></u></code>, then jump to step 16
+1. If <code>C<sub>a</sub>' == <ins>C<sub>a</sub></ins></code>, then jump to step 16
 1. Set `enote_type' = "change"`
 1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
-1. If <code>C<sub>a</sub>' ≠ <u>C<sub>a</sub></u></code>, then <code><b>ABORT</b></code>
-1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <u>C<sub>a</sub></u>)</code>
-1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <u>C<sub>a</sub></u>)</code>
-1. Let <code>K<sub>s</sub><sup>j</sup>' = <u>K<sub>o</sub></u> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
+1. If <code>C<sub>a</sub>' ≠ <ins>C<sub>a</sub></ins></code>, then <code><b>ABORT</b></code>
+1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>C<sub>a</sub></ins>)</code>
+1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>C<sub>a</sub></ins>)</code>
+1. Let <code>K<sub>s</sub><sup>j</sup>' = <ins>K<sub>o</sub></ins> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
 1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 36
-1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <u>K<sub>o</sub></u>)[:8]</code>
-1. Set <code>pid' = <u>pid<sub>enc</sub></u> ⊕ m<sub>pid</sub></code>
-1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <u>K<sub>o</sub></u>)[:16]</code>
-1. Let <code>anchor' = <u>anchor<sub>enc</sub></u> ⊕ m<sub>anchor</sub></code>
+1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
+1. Set <code>pid' = <ins>pid<sub>enc</sub></ins> ⊕ m<sub>pid</sub></code>
+1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:16]</code>
+1. Let <code>anchor' = <ins>anchor<sub>enc</sub></ins> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
-1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <u>input_context</u> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 36
 1. Set `pid' = nullpid`
-1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <u>input_context</u> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
+1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
 1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 36
-1. Let <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| <u>D<sub>e</sub></u> \|\| <u>input_context</u> \|\| <u>K<sub>o</sub></u> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)[:16]</code>
+1. Let <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins> \|\| k<sub>v</sub> \|\| K<sub>s</sub>)[:16]</code>
 1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code>
 1. Return successfully!
 
