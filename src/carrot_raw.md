@@ -342,7 +342,7 @@ The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the v
 
 #### Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code> is constructed properly. In *special* enotes, <code>anchor</code> is set to an HMAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to the same wallet without performing a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code> is constructed properly. In *special* enotes, <code>anchor</code> is set to an MAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to the same wallet without performing a Janus attack.
 
 ### Enote derivations
 
@@ -620,7 +620,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Input Content* - A unique value associated to each transaction used in the Carrot address protocol derivations to mitigate burning bug attacks
 - *Integrated Address* - A main address which additionally contains a payment ID
 - *Internal Enote* - An enote which was constructed using a symmetric shared secret, typically the view-balance secret
-- *Janus Anchor* - An enote component whose purpose is two fold in mitigating Janus attacks: act as an entropy source for deriving the ephemeral private key or act as an HMAC validating the ephemeral pubkey
+- *Janus Anchor* - An enote component whose purpose is two fold in mitigating Janus attacks: act as an entropy source for deriving the ephemeral private key or act as an MAC validating the ephemeral pubkey
 - *Janus Attack* - An attack where an exploiter constructs an enote partially using two different addresses they suspect to belong to the same user such that the confirmation of that payment confirms the addresses are actually related
 - *Key Image* - An elliptic curve point emitted during a Rerandomizable RingCT spend proof, used during balance recovery to determine whether an enote has been spent yet
 - *Ledger* - An immutable, append-only list of transactions which is the shared medium of data exchange for different participants of the network
