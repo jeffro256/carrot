@@ -115,7 +115,7 @@ Both curves are birationally equivalent, so the subgroups 𝔾<sub>M</sub> and �
 
 #### 3.3.1 Curve25519
 
-The Montgomery curve Curve25519 [[14](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used. We denote the group additive identity element, or "point at infinity", for Curve25519 as 𝐼<sub>M</sub>.
+The Montgomery curve Curve25519 [[14](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used.
 
 Elements of 𝔾<sub>M</sub> are denoted by `D`, and are serialized as their x-coordinate. As is convention for Curve25519, the y coordinate is assumed to be the even value that satisfies the Montgomery curve equation. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>. In this specification, we always perform a "full" scalar multiplication on Curve25519 without scalar clamping, a notable difference from typical X25519 implementations. Using a clamped scalar multiplication will break completeness of the ECDH for existing pubkeys in addresses for which the private keys can be any element of **F**<sub>*ℓ*</sub>.
 
@@ -450,7 +450,6 @@ The following values are part of the enote, and thus public: <ins><code>input_co
 
 We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
 
-1. If <code>s<sub>sr</sub> == 𝐼<sub>M</sub></code>, then <code><b>ABORT</b></code>
 1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins>)[:3]</code>
 1. If <code>vt' ≠ <ins>vt</ins></code>, then <code><b>ABORT</b></code>
 1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins>)</code>
@@ -459,16 +458,17 @@ We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<s
 1. Let <code>K<sub>s</sub><sup>j</sup>' = <ins>K<sub>o</sub></ins> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
 1. Set `enote_type' = "payment"`
-1. If a coinbase enote, then let `a' = a` and jump to step 20
+1. If a coinbase enote, then let `a' = a` and jump to step 19
 1. Let <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
 1. Let <code>a' = BytesToInt64(<ins>a<sub>enc</sub></ins> ⊕ m<sub>a</sub>)</code>
 1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
-1. If <code>C<sub>a</sub>' == <ins>C<sub>a</sub></ins></code>, then jump to step 20
+1. If <code>C<sub>a</sub>' == <ins>C<sub>a</sub></ins></code>, then jump to step 19
 1. Set `enote_type' = "change"`
 1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| enote_type')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' ≠ <ins>C<sub>a</sub></ins></code>, then <code><b>ABORT</b></code>
+1. If <code>K<sub>s</sub><sup>j</sup>'</code> is not in the *prime order* cyclic subgroup 𝔾<sub>E</sub>, then <code><b>ABORT</b></code>
 1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 36
 1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
 1. Set <code>pid' = <ins>pid<sub>enc</sub></ins> ⊕ m<sub>pid</sub></code>
