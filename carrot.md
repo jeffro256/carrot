@@ -117,11 +117,13 @@ Both curves are birationally equivalent, so the subgroups 𝔾<sub>M</sub> and �
 
 The Montgomery curve Curve25519 [[14](https://cr.yp.to/ecdh/curve25519-20060209.pdf)] is used exclusively for the Diffie-Hellman key exchange with the private incoming view key. Only a single generator point `B`, where `x = 9`, is used.
 
-Elements of 𝔾<sub>M</sub> are denoted by `D`, and are serialized as their x-coordinate. As is convention for Curve25519, the y coordinate is assumed to be the even value that satisfies the Montgomery curve equation. Scalar multiplication is denoted by a space, e.g. <code>D = d B</code>. In this specification, we always perform a "full" scalar multiplication on Curve25519 without scalar clamping, a notable difference from typical X25519 implementations. Using a clamped scalar multiplication will break completeness of the ECDH for existing pubkeys in addresses for which the private keys can be any element of **F**<sub>*ℓ*</sub>.
+Elements of 𝔾<sub>M</sub> are denoted by `D`, and are serialized as their x-coordinate. As is convention for Curve25519, the y coordinate is assumed to be the even value that satisfies the Montgomery curve equation.
+
+Scalar-point multiplication is denoted by a space, e.g. <code>D = d B</code>. In this specification, when we mention scalar-point multiplication, we always mean a "full" scalar multiplication, without "scalar clamping" [[15](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/)]. Most implementations of X25519 [[16](https://cr.yp.to/ecdh.html)], an ECDH algorithm on Curve25519, will "clamp" the scalar, treating some bits implicitly as always 0s or always 1s. Performing a clamped scalar-point multiplication will break completeness of the ECDH for existing Monero addresses, since the private view key could be any *unclamped* element of **F**<sub>*ℓ*</sub>. Scalar clamping of the three least significant bits in X25519 is done to mitigate small subgroup attacks, but since we don't clamp, we must explicitly handle small subgroup attacks elsewhere [[17](https://datatracker.ietf.org/doc/html/rfc2785)].
 
 #### 3.3.2 Ed25519
 
-The twisted Edwards curve Ed25519 [[15](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
+The twisted Edwards curve Ed25519 [[18](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
@@ -131,7 +133,7 @@ The twisted Edwards curve Ed25519 [[15](https://ed25519.cr.yp.to/ed25519-2011092
 
 Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on Ed25519.
 
-Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar multiplication is denoted by a space, e.g. <code>K = k G</code>.
+Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar-point multiplication is denoted by a space, e.g. <code>K = k G</code>.
 
 #### 3.3.3 Point conversion
 
@@ -139,10 +141,10 @@ We define a function `ConvertPointE(K)` that can transform an Ed25519 curve poin
 
 #### 3.3.4 Private keys
 
-Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. These keys are not "clamped" [[16](https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/)] like they would be in the X25519 [[17](https://cr.yp.to/ecdh.html)] protocol. Unfortunately, this somewhat slows down implementations of Curve25519 scalar-point multiplications, but it must be this way for backwards compatibility and on-chain indistinguishability. Private keys are derived using one of the two following functions:
+Private keys for both curves are elements of the field **F**<sub>*ℓ*</sub>. Private keys are derived using one of the following functions:
 
-1. <code>ScalarDerive(x) = BytesToInt512(H<sub>64</sub>(x)) mod ℓ</code>
-1. <code>ScalarDeriveLegacy(x) = BytesToInt256(Keccak256(x)) mod ℓ</code>
+* <code>ScalarDerive(x) = BytesToInt512(H<sub>64</sub>(x)) mod ℓ</code>
+* <code>ScalarDeriveLegacy(x) = BytesToInt256(Keccak256(x)) mod ℓ</code>
 
 ## 4. Rerandomizable RingCT abstraction
 
@@ -344,7 +346,7 @@ The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the v
 
 #### 7.3.5 Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks in Carrot. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code> is constructed properly. In *special* enotes, <code>anchor</code> is set to an MAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus attack or B) the sender knows the private view key, in which case they can determine that addresses belong to the same wallet without performing a Janus attack.
+The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks and small subgroup attacks on the main sender-receiver ECDH. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code> is constructed properly. In *special* enotes, <code>anchor</code> is set to an MAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus nor small subgroup attack or B) the sender knows the private view key, in which case they have no need to execute a Janus nor small subgroup attack.
 
 ### 7.4 Enote derivations
 
@@ -398,11 +400,11 @@ The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx<
 
 <code>s<sub>sr</sub></code> is derived the following ways:
 
-|                       | Derivation                                                            |
-|---------------------- | ----------------------------------------------------------------------|
-|Sender, external       |<code>8 d<sub>e</sub> ConvertPointE(K<sub>v</sub><sup>j</sup></code>) |
-|Recipient, external    |<code>8 k<sub>v</sub> D<sub>e</sub></code>                             |
-|Internal               |<code>s<sub>vb</sub></code>                                            |
+|                       | Derivation                                                         |
+|---------------------- | -------------------------------------------------------------------|
+|Sender, external       |<code>d<sub>e</sub> ConvertPointE(K<sub>v</sub><sup>j</sup></code>) |
+|Recipient, external    |<code>k<sub>v</sub> D<sub>e</sub></code>                            |
+|Internal               |<code>s<sub>vb</sub></code>                                         |
 
 Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
 
@@ -448,7 +450,7 @@ The enote scan process is a function which takes public enote information and re
 
 The following values are part of the enote, and thus public: <ins><code>input_context, D<sub>e</sub>, K<sub>o</sub>, C<sub>a</sub>, a<sub>enc</sub>, vt, anchor<sub>enc</sub>, pid<sub>enc</sub></code></ins>. By contrast, the following values are private to each scanner: <code>k<sub>v</sub>, s<sub>vb</sub>, and K<sub>s</sub></code>. For readability, we will denote public values with an <ins>underline</ins> in this section.
 
-We perform the scan process once with <code>s<sub>sr</sub> = 8 k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
+We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
 
 1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins>)[:3]</code>
 1. If <code>vt' ≠ <ins>vt</ins></code>, then <code><b>ABORT</b></code>
@@ -509,7 +511,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## 9. Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[18](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
+Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[19](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### 9.1 Balance recovery security
 
@@ -540,7 +542,7 @@ For any <code>K<sub>o</sub></code>, it is computationally intractable to find tw
 
 There is no algorithm that, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, allows a sender to construct an enote using two or more honestly-derived non-integrated addresses which successfully passes the enote scan process when the two addresses where derived from the same account, but fails when the addresses are unrelated.
 
-More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>s<sub>sr</sub> = 8 r ConvertPointE(K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
+More concretely, it is computationally intractable, without knowledge of the recipient's private view key <code>k<sub>v</sub></code>, to construct an external enote which successfully passes the enote scan process such that the recipient's computed nominal address spend pubkey <code>K<sub>s</sub><sup>j</sup>' = K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code> does not match the shared secret <code>s<sub>sr</sub> = r ConvertPointE(K<sub>v</sub><sup>j</sup>')</code> for some sender-chosen `r`. This narrowed statement makes the informal assumption that using the address view spend pubkey for the Diffie-Hellman exchange and nominally recomputing its correct address spend pubkey leaves no room for a Janus attack.
 
 ### 9.2 Unlinkability
 
@@ -591,7 +593,7 @@ Carrot ephemeral pubkeys are indistinguishable from random Curve25519 pubkeys. T
 1. Sample `r` from uniform integer distribution `[0, ℓ)`.
 2. Set <code>D<sub>e</sub> = r B</code>
 
-Note that in Carrot ephemeral pubkey construction, the ephemeral private key <code>d<sub>e</sub></code>, unlike most X25519 private keys, is derived without key clamping. Multiplying by this unclamped key makes it so the resultant pubkey is indistinguishable from a random pubkey (*needs better formalizing*).
+Note that in Carrot ephemeral pubkey construction, since the ephemeral private key <code>d<sub>e</sub></code>, unlike the private view-incoming key, is derived from a random secret, without key clamping, multiplying by this unclamped key makes the resultant pubkey indistinguishable from a random pubkey.
 
 #### 9.4.3 Other enote component random indistinguishability
 
@@ -610,7 +612,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 
 ## 11. Glossary
 
-- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[19](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
+- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[20](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
 - *Burning Bug Attack* - An attack where an exploiter duplicates an output pubkey and tricks the recipient into accepting both, even though only one can be spent
 - *Coinbase Transaction* - A transaction which has no key images, and plaintext integer amounts instead of amount commitments in its outputs
 - *Cryptonote* - A cryptocurrency consensus protocol and addressing scheme which was the foundation for Monero's ledger interactions initially
@@ -629,7 +631,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Key Image* - An elliptic curve point emitted during a Rerandomizable RingCT spend proof, used during balance recovery to determine whether an enote has been spent yet
 - *Ledger* - An immutable, append-only list of transactions which is the shared medium of data exchange for different participants of the network
 - *Main Address* - same as *Cryptonote Address*
-- *MAC* - Message Authentication Code [[20](https://www.cs.princeton.edu/courses/archive/spr10/cos433/lec9new.pdf)]: some information that verifies that certain key material "authorized" a given message
+- *MAC* - Message Authentication Code [[21](https://www.cs.princeton.edu/courses/archive/spr10/cos433/lec9new.pdf)]: some information that verifies that certain key material "authorized" a given message
 - *Monero* - A payment network, along with a cryptocurrency *XMR*, that historically utilizes a collection of consensus protocols on its ledger, namely: Cryptonote, RingCT, and FCMP++
 - *Payment ID* - An 8 byte array included with transaction data used to differentiate senders
 - *Rerandomizable RingCT* - An abstraction of FCMP++ defined in this document that allows the formalization of different security properties without knowledge of the underlying proving system
@@ -658,9 +660,10 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://eprint.iacr.org/2013/322.pdf
 1. https://keccak.team/keccak.html
 1. https://cr.yp.to/ecdh/curve25519-20060209.pdf
-1. https://ed25519.cr.yp.to/ed25519-20110926.pdf
 1. https://neilmadden.blog/2020/05/28/whats-the-curve25519-clamping-all-about/
 1. https://cr.yp.to/ecdh.html
+1. https://datatracker.ietf.org/doc/html/rfc2785
+1. https://ed25519.cr.yp.to/ed25519-20110926.pdf
 1. https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf
 1. https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html
 1. https://www.cs.princeton.edu/courses/archive/spr10/cos433/lec9new.pdf
