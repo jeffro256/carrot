@@ -81,6 +81,7 @@ Carrot supports full view-only wallets that can identify spent outputs (unlike l
 1. The function `BytesToInt64(x)` deserializes a 64-bit little-endian integer from a 8-byte input.
 1. The function `BytesToInt256(x)` deserializes a 256-bit little-endian integer from a 32-byte input.
 1. The function `BytesToInt512(x)` deserializes a 512-bit little-endian integer from a 64-byte input.
+1. The function `IntToBytes8(x)` serializes an integer into a little-endian encoded 1-byte output.
 1. The function `IntToBytes32(x)` serializes an integer into a little-endian encoded 4-byte output.
 1. The function `IntToBytes64(x)` serializes an integer into a little-endian encoded 8-byte output.
 1. The function `IntToBytes256(x)` serializes an integer into a little-endian encoded 32-byte output.
@@ -280,7 +281,7 @@ The two public keys of the main address are constructed as:
 
 Under the legacy key hierarchy, the two public keys of the subaddress at index `j` are constructed as:
 
-* <code>k<sub>sub_ext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>k<sub>sub_ext</sub><sup>j</sup> = ScalarDeriveLegacy("SubAddr" \|\| IntToBytes8(0) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
 * <code>K<sub>s</sub><sup>j</sup> = K<sub>s</sub> + k<sub>sub_ext</sub><sup>j</sup> G</code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>v</sub> K<sub>s</sub><sup>j</sup></code>
 
@@ -495,7 +496,7 @@ An enote is spendable if the computed nominal address spend pubkey <code>K<sub>s
 
 #### Legacy key hierarchy key images
 
-If `j ≠ 0`, then let <code>k<sub>sub_ext</sub><sup>j</sup> = ScalarDeriveLegacy(IntToBytes64(8) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>sub_ext</sub><sup>j</sup> = 0</code>.
+If `j ≠ 0`, then let <code>k<sub>sub_ext</sub><sup>j</sup> = ScalarDeriveLegacy("SubAddr" \|\| IntToBytes8(0) \|\| k<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>sub_ext</sub><sup>j</sup> = 0</code>.
 
 The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>sub_ext</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
