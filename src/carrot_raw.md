@@ -472,20 +472,19 @@ We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' ≠ <ins>C<sub>a</sub></ins></code>, then <code><b>ABORT</b></code>
 1. If <code>K<sub>s</sub><sup>j</sup>'</code> is not in the *prime order* cyclic subgroup 𝔾<sub>E</sub>, then <code><b>ABORT</b></code>
-1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 36
+1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 35
 1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
 1. Set <code>pid' = <ins>pid<sub>enc</sub></ins> ⊕ m<sub>pid</sub></code>
 1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:16]</code>
 1. Let <code>anchor' = <ins>anchor<sub>enc</sub></ins> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
-1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
 1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
-1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 36
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 35
 1. Set `pid' = nullpid`
 1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
-1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 36
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 35
 1. Let <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins> \|\| k<sub>v</sub>)[:16]</code>
 1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code>
 1. Return successfully!
