@@ -88,7 +88,7 @@ Carrot supports full view-only wallets that can identify spent outputs (unlike l
 1. The function `RandBytes(x)` generates a random x-byte string.
 1. Concatenation is denoted by `||`.
 1. Bit-wise XOR (exclusive-or) is denoted by `⊕`.
-1. Python slice notation [[11](https://stackabuse.com/python-slice-notation-on-list/)] `X[:N]` is used to take the first `N` bytes of byte string `X`
+1. Python slice notation [[11](https://stackabuse.com/python-slice-notation-on-list/)] `X[:N]` is used to take the first `N` bytes of byte string `X`. Likewise, `X[N:]` is used to take all bytes after position `N`.
 
 ### 3.2 Hash functions
 
@@ -124,17 +124,23 @@ Scalar-point multiplication is denoted by a space, e.g. <code>D = d B</code>. In
 
 #### 3.3.2 Ed25519
 
-The twisted Edwards curve Ed25519 [[18](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. The following generators are used:
+The twisted Edwards curve Ed25519 [[18](https://ed25519.cr.yp.to/ed25519-20110926.pdf)] is used for all other cryptographic operations on FCMP++. We utilize two hash-to-point functions over Ed25519: <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code>. Additionally, three generators with unknown discrete logarithm relations are used: `G`, `H`, and `T`.
+
+Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. This is also known as "Compressed-Y" form. Scalar-point multiplication is denoted by a space, e.g. <code>K = k G</code>.
+
+The function <code>H<sub>p</sub><sup>1</sup></code> is a "hopeful" hash-to-point function. It merely calls `Keccak256` over the input and interprets the 32-byte result as an Ed25519 point in Compressed-Y form, which may fail. For this reason, it is not a good candidate for a general-purpose hash-to-point function.
+
+The function <code>H<sub>p</sub><sup>2</sup></code> is defined as <code>H<sub>p</sub><sup>2</sup>(x) = h * (El(H<sub>64</sub>(x)[:32]) + El(H<sub>64</sub>(x)[32:]))</code>, where cofactor `h = 8` and `El` is the Elligator2 [[19](https://dl.acm.org/doi/10.1145/2508859.2516734)] "direct map". Visit [elligator.org](https://elligator.org) for more information about Elligator2 generally, and the following links for the specific implementations of Elligator2 over Ed25519 used in Monero:
+* [C](https://github.com/monero-project/monero/blob/8e9ab9677f90492bca3c7555a246f2a8677bd570/src/crypto/crypto-ops.c#L2309)
+* [Rust](https://github.com/monero-oxide/monero-oxide/blob/02c900c43f2988610907efd98cf84f248b24eead/monero-oxide/generators/src/hash_to_point.rs#L9)
+
+Generators `G`, `H`, and `T` are derived as follows:
 
 |Point|Derivation|Serialized (hex)|
 |-----|----------|----------|
-| `G` | generator of 𝔾<sub>E</sub> | `5866666666666666666666666666666666666666666666666666666666666666`
+| `G` | `y = 4/5`, `x` "positive"/"even" | `5866666666666666666666666666666666666666666666666666666666666666`
 | `H` | <code>H<sub>p</sub><sup>1</sup>(G)</code> | `8b655970153799af2aeadc9ff1add0ea6c7251d54154cfa92c173a0dd39c1f94`
-| `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero Generator T"))</code> | `966fc66b82cd56cf85eaec801c42845f5f408878d1561e00d3d7ded2794d094f`
-
-Here <code>H<sub>p</sub><sup>1</sup></code> and <code>H<sub>p</sub><sup>2</sup></code> refer to two hash-to-point functions on Ed25519.
-
-Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256-bit integers, with the lower 255 bits being the y-coordinate of the corresponding Ed25519 point and the most significant bit being the parity of the x-coordinate. Scalar-point multiplication is denoted by a space, e.g. <code>K = k G</code>.
+| `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero Generator T"))</code> | `61b736ce93b62a3d3778ab204da85d3b4cdc07250f5da7e3df2629928134d526`
 
 #### 3.3.3 Point conversion
 
@@ -511,7 +517,7 @@ If a scanner successfully scans any enote within a transaction, they should save
 
 ## 9. Security properties
 
-Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[19](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
+Below are listed some security properties which are to hold for Carrot. Unless otherwise specified, it is assumed that no participant can efficiently solve the decisional Diffie-Hellman problem in Curve25519 and Ed25519 (i.e. the decisional Diffie-Hellman assumption [[20](https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf)] holds).
 
 ### 9.1 Balance recovery security
 
@@ -612,7 +618,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 
 ## 11. Glossary
 
-- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[20](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
+- *Amount Commitment* - An elliptic curve point, in the form of a Pederson Commitment [[21](https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html)], which is used to represent hidden amounts in transaction outputs in RingCT and FCMP++
 - *Burning Bug Attack* - An attack where an exploiter duplicates an output pubkey and tricks the recipient into accepting both, even though only one can be spent
 - *Coinbase Transaction* - A transaction which has no key images, and plaintext integer amounts instead of amount commitments in its outputs
 - *Cryptonote* - A cryptocurrency consensus protocol and addressing scheme which was the foundation for Monero's ledger interactions initially
@@ -631,7 +637,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Key Image* - An elliptic curve point emitted during a Rerandomizable RingCT spend proof, used during balance recovery to determine whether an enote has been spent yet
 - *Ledger* - An immutable, append-only list of transactions which is the shared medium of data exchange for different participants of the network
 - *Main Address* - same as *Cryptonote Address*
-- *MAC* - Message Authentication Code [[21](https://www.cs.princeton.edu/courses/archive/spr10/cos433/lec9new.pdf)]: some information that verifies that certain key material "authorized" a given message
+- *MAC* - Message Authentication Code [[22](https://www.cs.princeton.edu/courses/archive/spr10/cos433/lec9new.pdf)]: some information that verifies that certain key material "authorized" a given message
 - *Monero* - A payment network, along with a cryptocurrency *XMR*, that historically utilizes a collection of consensus protocols on its ledger, namely: Cryptonote, RingCT, and FCMP++
 - *Payment ID* - An 8 byte array included with transaction data used to differentiate senders
 - *Rerandomizable RingCT* - An abstraction of FCMP++ defined in this document that allows the formalization of different security properties without knowledge of the underlying proving system
@@ -664,6 +670,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 1. https://cr.yp.to/ecdh.html
 1. https://datatracker.ietf.org/doc/html/rfc2785
 1. https://ed25519.cr.yp.to/ed25519-20110926.pdf
+1. https://dl.acm.org/doi/10.1145/2508859.2516734
 1. https://crypto.stanford.edu/~dabo/pubs/papers/DDH.pdf
 1. https://www.getmonero.org/resources/moneropedia/pedersen-commitment.html
 1. https://www.cs.princeton.edu/courses/archive/spr10/cos433/lec9new.pdf
