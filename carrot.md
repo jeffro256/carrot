@@ -294,7 +294,7 @@ Under the new key hierarchy, the two public keys of the subaddress at index `j` 
 * <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("Carrot address index generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
 * <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
 * <code>K<sub>s</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>s</sub></code>
-* <code>K<sub>v</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>v</sub></code>
+* <code>K<sub>v</sub><sup>j</sup> = k<sub>v</sub> K<sub>s</sub><sup>j</sup></code>
 
 The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
 
