@@ -224,7 +224,8 @@ s_m (master secret)
 |-----|------|------------|-------|
 |<code>k<sub>ps</sub></code> | prove-spend key         | <code>k<sub>ps</sub> = ScalarDerive("Carrot prove-spend key" \|\| s<sub>m</sub>)</code>                  | spend enotes                                 |
 |<code>s<sub>vb</sub></code> | view-balance secret     | <code>s<sub>vb</sub> = SecretDerive("Carrot view-balance secret" \|\| s<sub>m</sub>)</code>              | find and decode received and outgoing enotes |
-|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("Carrot generate-image key" \|\| s<sub>vb</sub>)</code>              | generate key images                          |
+|<code>s<sub>gp</sub></code> | generate-image preimage     | <code>s<sub>gp</sub> = SecretDerive("Carrot generate-image preimage secret" \|\| s<sub>vb</sub>)</code>              | preimage for the generate-image key |
+|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("Carrot generate-image key" \|\| s<sub>gp</sub> \|\| k<sub>ps</sub> T)</code>              | generate key images                          |
 |<code>k<sub>v</sub></code>  | incoming view key       | <code>k<sub>v</sub> = ScalarDerive("Carrot incoming view key" \|\| s<sub>vb</sub>)</code>                | find and decode received enotes              |
 |<code>s<sub>ga</sub></code> | generate-address secret | <code>s<sub>ga</sub> = SecretDerive</sub>("Carrot generate-address secret" \|\| s<sub>vb</sub>)</code>   | generate addresses                           |
 
@@ -297,12 +298,15 @@ Notice that generating new subaddresses this way requires knowledge of <code>k<s
 
 Under the new key hierarchy, the two public keys of the subaddress at index `j` are constructed as:
 
-* <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("Carrot address index generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
-* <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>s<sub>ap1</sub><sup>j</sup> = SecretDerive("Carrot address index preimage 1" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>s<sub>ap2</sub><sup>j</sup> = SecretDerive("Carrot address index preimage 2" \|\| s<sub>ap1</sub><sup>j</sup> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>) \|\| K<sub>s</sub> \|\| K<sub>v</sub>)</code>
+* <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>ap2</sub><sup>j</sup> \|\| K<sub>s</sub>)</code>
 * <code>K<sub>s</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>s</sub></code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>v</sub></code>
 
-The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
+The first address index pre-image /<code>s<sub>ap1</sub><sup>j</sup></code> can be used to prove that the address <code>(K<sub>s</sub><sup>j</sup>, K<sub>s</sub><sup>v</sup>)</code> was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
+
+The second address index pre-image <code>s<sub>ap1</sub><sup>j</sup></code> can be used to prove that the address spend pubkey <code>K<sub>s</sub><sup>j</sup></code> was constructed from the account spend pubkey <code>K<sub>s</sub></code> without revealing <code>s<sub>ga</sub></code> or the discrete log relationship between <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code>, which is the private view-incoming key, to a discrete log solver.
 
 ## Addressing protocol
 
@@ -507,7 +511,7 @@ The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>sub_ext</sub><sup
 
 #### New key hierarchy key images
 
-If `j ≠ 0`, then let <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>sub_scal</sub><sup>j</sup> = 1</code>.
+If `j ≠ 0`, then let <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>ap2</sub><sup>j</sup> \|\| K<sub>s</sub>)</code>, otherwise let <code>k<sub>sub_scal</sub><sup>j</sup> = 1</code>.
 
 The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>sub_scal</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
