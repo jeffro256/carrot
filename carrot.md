@@ -224,7 +224,8 @@ s_m (master secret)
 |-----|------|------------|-------|
 |<code>k<sub>ps</sub></code> | prove-spend key         | <code>k<sub>ps</sub> = ScalarDerive("Carrot prove-spend key" \|\| s<sub>m</sub>)</code>                  | spend enotes                                 |
 |<code>s<sub>vb</sub></code> | view-balance secret     | <code>s<sub>vb</sub> = SecretDerive("Carrot view-balance secret" \|\| s<sub>m</sub>)</code>              | find and decode received and outgoing enotes |
-|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("Carrot generate-image key" \|\| s<sub>vb</sub>)</code>              | generate key images                          |
+|<code>s<sub>gp</sub></code> | generate-image preimage     | <code>s<sub>gp</sub> = SecretDerive("Carrot generate-image preimage secret" \|\| s<sub>vb</sub>)</code>              | preimage for the generate-image key |
+|<code>k<sub>gi</sub></code> | generate-image key      | <code>k<sub>gi</sub> = ScalarDerive("Carrot generate-image key" \|\| s<sub>gp</sub> \|\| k<sub>ps</sub> T)</code>              | generate key images                          |
 |<code>k<sub>v</sub></code>  | incoming view key       | <code>k<sub>v</sub> = ScalarDerive("Carrot incoming view key" \|\| s<sub>vb</sub>)</code>                | find and decode received enotes              |
 |<code>s<sub>ga</sub></code> | generate-address secret | <code>s<sub>ga</sub> = SecretDerive</sub>("Carrot generate-address secret" \|\| s<sub>vb</sub>)</code>   | generate addresses                           |
 
@@ -297,12 +298,15 @@ Notice that generating new subaddresses this way requires knowledge of <code>k<s
 
 Under the new key hierarchy, the two public keys of the subaddress at index `j` are constructed as:
 
-* <code>s<sub>gen</sub><sup>j</sup> = SecretDerive("Carrot address index generator" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
-* <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>s<sub>ap1</sub><sup>j</sup> = SecretDerive("Carrot address index preimage 1" \|\| s<sub>ga</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>
+* <code>s<sub>ap2</sub><sup>j</sup> = SecretDerive("Carrot address index preimage 2" \|\| s<sub>ap1</sub><sup>j</sup> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>) \|\| K<sub>s</sub> \|\| K<sub>v</sub>)</code>
+* <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>ap2</sub><sup>j</sup> \|\| K<sub>s</sub>)</code>
 * <code>K<sub>s</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>s</sub></code>
 * <code>K<sub>v</sub><sup>j</sup> = k<sub>sub_scal</sub><sup>j</sup> K<sub>v</sub></code>
 
-The address index generator <code>s<sub>gen</sub><sup>j</sup></code> can be used to prove that the address was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
+The first address index pre-image /<code>s<sub>ap1</sub><sup>j</sup></code> can be used to prove that the address <code>(K<sub>s</sub><sup>j</sup>, K<sub>s</sub><sup>v</sup>)</code> was constructed from the index `j` and the public keys <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code> without revealing <code>s<sub>ga</sub></code>. Notice that, unlike the legacy derivation, the new subaddress derivation method does not require the private incoming view key <code>k<sub>v</sub></code>, only the generate-address secret <code>s<sub>ga</sub></code>, which allows for private deferred address generation.
+
+The second address index pre-image <code>s<sub>ap1</sub><sup>j</sup></code> can be used to prove that the address spend pubkey <code>K<sub>s</sub><sup>j</sup></code> was constructed from the account spend pubkey <code>K<sub>s</sub></code> without revealing <code>s<sub>ga</sub></code> or the discrete log relationship between <code>K<sub>s</sub></code> and <code>K<sub>v</sub></code>, which is the private view-incoming key, to a discrete log solver.
 
 ## 7. Addressing protocol
 
@@ -364,8 +368,10 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 | Symbol | Name   | Derivation |
 |-----------|--------|-----------|
 |<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| enote_type)</code> |
-|<code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G| <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+| <code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G [coinbase] | <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Carrot coinbase extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup>)</code> |
+| <code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T [coinbase]| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Carrot coinbase extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup>)</code> |
+| <code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G [non-coinbase] | <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
+| <code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T [non-coinbase] | <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 |<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:16]</code> |
 |<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
 |<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
@@ -374,6 +380,10 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 |<code>d<sub>e</sub></code>|ephemeral private key| <code>d<sub>e</sub> = ScalarDerive("Carrot sending key normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the human-meaningful tag that a sender wants to express to the recipient. However, `enote_type` must be equal to `"payment"` for coinbase enotes.
+
+Notice the difference in the derivation of the output pubkey extensions <code>k<sub>g</sub><sup>o</sup>, k<sub>t</sub><sup>o</sup></code> between coinbase
+enotes and non-coinbase enotes. The reason for this difference is twofold. First,
+this allows the receiver of a coinbase enote to prove that its output pubkey binds to the account spend pubkey. Second, binding the coinbase extensions to the amount instead of the amount commitments saves a scalar-point multiplication and point addition.
 
 #### 7.4.2 Component Values
 
@@ -462,8 +472,7 @@ We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub
 1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins>)[:3]</code>
 1. If <code>vt' ≠ <ins>vt</ins></code>, then <code><b>ABORT</b></code>
 1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins>)</code>
-1. Let <code>k<sub>g</sub><sup>o</sup>' = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>C<sub>a</sub></ins>)</code>
-1. Let <code>k<sub>t</sub><sup>o</sup>' = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>C<sub>a</sub></ins>)</code>
+1. Let <code>k<sub>g</sub><sup>o</sup>' = ... , k<sub>t</sub><sup>o</sup>' = ... </code> according to whether the enote is a coinbase enote
 1. Let <code>K<sub>s</sub><sup>j</sup>' = <ins>K<sub>o</sub></ins> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
 1. Set `enote_type' = "payment"`
@@ -507,7 +516,7 @@ The key image is computed as: <code>L = (k<sub>s</sub> + k<sub>sub_ext</sub><sup
 
 #### 8.2.2 New key hierarchy key images
 
-If `j ≠ 0`, then let <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>gen</sub><sup>j</sup> \|\| K<sub>s</sub> \|\| K<sub>v</sub> \|\| IntToBytes32(j<sub>major</sub>) \|\| IntToBytes32(j<sub>minor</sub>))</code>, otherwise let <code>k<sub>sub_scal</sub><sup>j</sup> = 1</code>.
+If `j ≠ 0`, then let <code>k<sub>sub_scal</sub><sup>j</sup> = ScalarDerive("Carrot subaddress scalar" \|\| s<sub>ap2</sub><sup>j</sup> \|\| K<sub>s</sub>)</code>, otherwise let <code>k<sub>sub_scal</sub><sup>j</sup> = 1</code>.
 
 The key image is computed as: <code>L = (k<sub>gi</sub> * k<sub>sub_scal</sub><sup>j</sup> + k<sub>g</sub><sup>o</sup>) H<sub>p</sub><sup>2</sup>(K<sub>o</sub>)</code>.
 
