@@ -131,8 +131,8 @@ Elements of 𝔾<sub>E</sub> are denoted by `K` or `C` and are serialized as 256
 The function <code>H<sub>p</sub><sup>1</sup></code> is a "hopeful" hash-to-point function. It merely calls `Keccak256` over the input and interprets the 32-byte result as an Ed25519 point in Compressed-Y form, which may fail. For this reason, it is not a good candidate for a general-purpose hash-to-point function.
 
 The function <code>H<sub>p</sub><sup>2</sup></code> is defined as <code>H<sub>p</sub><sup>2</sup>(x) = h * (El(H<sub>64</sub>(x)[:32]) + El(H<sub>64</sub>(x)[32:]))</code>, where cofactor `h = 8` and `El` is the Elligator2 [[19](https://dl.acm.org/doi/10.1145/2508859.2516734)] "direct map". Visit [elligator.org](https://elligator.org) for more information about Elligator2 generally, and the following links for the specific implementations of Elligator2 over Ed25519 used in Monero:
-* [C](https://github.com/monero-project/monero/blob/8e9ab9677f90492bca3c7555a246f2a8677bd570/src/crypto/crypto-ops.c#L2309)
-* [Rust](https://github.com/monero-oxide/monero-oxide/blob/02c900c43f2988610907efd98cf84f248b24eead/monero-oxide/generators/src/hash_to_point.rs#L9)
+* [C](https://github.com/monero-project/monero/blob/23448f1c7ff5a0d004b8fd9c7dd88dce8e168c08/src/crypto/crypto.cpp#L666)
+* [Rust](https://github.com/monero-oxide/monero-oxide/blob/31c26d96eaadbba910ffe3613ad8b4cf9c598a93/monero-oxide/ed25519/src/point.rs#L157)
 
 Generators `G`, `H`, and `T` are derived as follows:
 
