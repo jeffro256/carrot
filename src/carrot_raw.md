@@ -140,7 +140,7 @@ Generators `G`, `H`, and `T` are derived as follows:
 |-----|----------|----------|
 | `G` | `y = 4/5`, `x` "positive"/"even" | `5866666666666666666666666666666666666666666666666666666666666666`
 | `H` | <code>H<sub>p</sub><sup>1</sup>(G)</code> | `8b655970153799af2aeadc9ff1add0ea6c7251d54154cfa92c173a0dd39c1f94`
-| `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero Generator T"))</code> | `61b736ce93b62a3d3778ab204da85d3b4cdc07250f5da7e3df2629928134d526`
+| `T` | <code>H<sub>p</sub><sup>2</sup>(Keccak256("Monero Generator T"))</code> | `dc42e1d3307b2d4b3b02729abe577e231d79478141cb5b310ca9fa6e127616a3`
 
 #### Point conversion
 
