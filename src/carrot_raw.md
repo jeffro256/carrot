@@ -357,7 +357,7 @@ The view tag `vt` is the first 3 bytes of a hash of the ECDH exchange with the v
 
 #### Janus anchor
 
-The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks and small subgroup attacks on the main sender-receiver ECDH. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code> is constructed properly. In *special* enotes, <code>anchor</code> is set to an MAC of <code>D<sub>e</sub></code>, authenticated by the private view key <code>k<sub>v</sub></code>. Both of these derivation-and-check paths should only pass if either A) the sender constructed the enotes in a way which does not allow for a Janus nor small subgroup attack or B) the sender knows the private view key, in which case they have no need to execute a Janus nor small subgroup attack.
+The Janus anchor `anchor` is a 16-byte encrypted array that provides protection against Janus attacks and small subgroup attacks on the main sender-receiver ECDH. The anchor is encrypted by exclusive or (XOR) with an encryption mask <code>m<sub>anchor</sub></code>. In the case of normal transfers, <code>anchor</code> is uniformly random, and used to re-derive the enote ephemeral private key <code>d<sub>e</sub></code> and check the enote ephemeral pubkey <code>D<sub>e</sub></code> is constructed properly.
 
 ### Enote derivations
 
@@ -376,7 +376,6 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 |<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
 |<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
-|<code>anchor<sub>sp</sub></code>|janus anchor, special| <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| D<sub>e</sub> \|\| input_context \|\| K<sub>o</sub> \|\| k<sub>v</sub>)[:16]</code> |
 |<code>d<sub>e</sub></code>|ephemeral private key| <code>d<sub>e</sub> = ScalarDerive("Carrot sending key normal" \|\| anchor<sub>norm</sub> \|\| input_context \|\| K<sub>s</sub><sup>j</sup> \|\| K<sub>v</sub><sup>j</sup> \|\| pid)</code> |
 
 The variable `enote_type` is `"payment"` or `"change"` depending on the human-meaningful tag that a sender wants to express to the recipient. However, `enote_type` must be equal to `"payment"` for coinbase enotes.
@@ -393,23 +392,26 @@ this allows the receiver of a coinbase enote to prove that its output pubkey bin
 |<code>C<sub>a</sub></code>        | amount commitment     | <code>C<sub>a</sub> = k<sub>a</sub> G + a H</code> |
 |<code>a<sub>enc</sub></code>      | encrypted amount      | <code>a<sub>enc</sub> = IntToBytes64(a) ⊕ m<sub>a</sub></code>   |
 |`vt`                              |view tag               | <code>vt = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)[:3]</code> |
-|<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = (anchor<sub>sp</sub> if <i>special enote</i>, else anchor<sub>norm</sub>) ⊕ m<sub>anchor</sub></code> |
+|<code>anchor<sub>enc</sub></code> |encrypted Janus anchor | <code>anchor<sub>enc</sub> = anchor<sub>norm</sub> ⊕ m<sub>anchor</sub></code> |
 |<code>pid<sub>enc</sub></code>    |encrypted payment ID   | <code>pid<sub>enc</sub> = pid ⊕ m<sub>pid</sub></code> |
 
 The view tag binds to `input_context` so that an external observer (i.e. someone without knowledge of <code>s<sub>sr</sub></code>) cannot simply copy <code>D<sub>e</sub></code>, <code>K<sub>o</sub></code>, and `vt` into a new transaction to force a view tag match. Binding to `input_context` causes the view tag of a copied enote to match with the same probability as any random, unrelated enote.
 
 ### Ephemeral public key
 
-The ephemeral pubkey <code>D<sub>e</sub></code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to, how many outputs are in the transaction, and whether we are deriving on the internal or external path. Here "special" means an *external self-send* enote in a 2-out transaction. "Normal" refers to non-special, external enotes.
+The ephemeral pubkey <code>D<sub>e</sub></code>, a Curve25519 point, for a given enote is constructed differently based on what type of address one is sending to, how many outputs are in the transaction, and whether the enote is a self-send.
 
 | Transfer Type            | <code>D<sub>e</sub></code> Derivation                                |
-|--------------------------|----------------------------------------------------------------------|   
+|--------------------------|----------------------------------------------------------------------|
 | Normal, to main address  | <code>d<sub>e</sub> B</code>                                         |
-| Normal, to subaddress    | <code>d<sub>e</sub> ConvertPointE(K<sub>s</sub><sup>j</sup>)</code> |
-| Internal                 | random element of 𝔾<sub>M</sub>                                      |
-| Special                  | <code>D<sub>e</sub><sup>other</sup></code>                           |
+| Normal, to subaddress    | <code>d<sub>e</sub> ConvertPointE(K<sub>s</sub><sup>j</sup>)</code>  |
+| Self-send, 2-out         | <code>D<sub>e</sub><sup>other</sup></code>                           |
+| Self-send, >2-out        | Random or chosen element of 𝔾<sub>M</sub>                            |
 
-<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are "special", then no specific derivation of <code>D<sub>e</sub></code> is required, and <code>D<sub>e</sub></code> should be set to a random element of 𝔾<sub>M</sub>.
+<code>D<sub>e</sub><sup>other</sup></code> refers to the ephemeral pubkey that would be derived on the *other* enote in a 2-out transaction. If both enotes in a 2-out transaction are self-send, then no specific derivation of <code>D<sub>e</sub></code> is required, and <code>D<sub>e</sub></code> should be set to a random element of 𝔾<sub>M</sub>, or any arbitrary
+point that is externally pseudo-random. Similarly, for self-send enotes in >2-out transactions, the sender can generate
+a random element, or choose an arbitrary externally pseudo-random element. Note that using the normal pathways in these
+situations will allow the sender to construct some [wallet proofs](https://github.com/monero-project/monero/blob/8340be5e920d881edc006e0896d6074cd06dfb2e/src/wallet/wallet2.cpp#L12662), and thus may be beneficial for UX purposes.
 
 ### Sender-receiver shared secrets
 
@@ -435,13 +437,9 @@ Self-send enotes are any enote created by the wallet that the enote is also dest
 
 #### Internal enotes
 
-Enotes which are destined for the sending wallet and use a symmetric secret instead of a ECDH exchange are called "internal enotes". The most common type are `"change"` enotes, but internal `"payment"` enotes are also possible. For typical 2-output transactions, an internal enote reuses the same value of <code>D<sub>e</sub></code> as the other enote.
+Enotes which are destined for the sending wallet and use a symmetric secret instead of a ECDH exchange are called "internal enotes". The most common type are `"change"` enotes, but internal `"payment"` enotes are also possible.
 
-As specified above, these enotes use <code>s<sub>vb</sub></code> as the value for <code>s<sub>sr</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>s<sub>sr</sub></code> and internal <code>s<sub>sr</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication and multiplication by eight in Ed25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
-
-#### Special enotes
-
-Special enotes are external self-send enotes in a 2-out transaction. The sender employs different shared secret derivations and Janus anchor derivations than a regular external enote.
+As specified above, these enotes use <code>s<sub>vb</sub></code> (or <code>k<sub>v</sub></code> for the legacy key hierarchy) as the value for <code>s<sub>sr</sub></code>. The existence of internal enotes means that we have to effectively perform *two* types of balance recovery scan processes, external <code>s<sub>sr</sub></code> and internal <code>s<sub>sr</sub></code>. Note, however, that this does not necessarily make balance recovery twice as slow since one scalar-point multiplication in X25519 is significantly (~100x) slower than Blake2b hashing, and we get to skip those operations for internal scanning.
 
 #### Mandatory self-send enote rule
 
@@ -449,7 +447,7 @@ Every transaction that spends funds from the wallet must produce at least one se
 
 #### One payment, one change rule
 
-In a 2-out transaction with two internal or two special enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
+In a 2-out transaction with two self-send enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
 
 In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>s<sub>sr</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
 
@@ -457,7 +455,7 @@ In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared
 
 Coinbase transactions are not considered to be internal.
 
-Miners should continue the practice of only allowing main addresses for the destinations of coinbase transactions in Carrot. This is because, unlike normal enotes, coinbase enotes do not contain an amount commitment, and thus scanning a coinbase enote commitment has no "hard target". If subaddresses can be the destinations of coinbase transactions, then the scanner *must* have their subaddress table loaded and populated to correctly scan coinbase enotes. If only main addresses are allowed, then the scanner does not need the table and can instead simply check whether <code>K<sub>s</sub><sup>0</sup> ?= K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G + k<sub>t</sub><sup>o</sup> T</code>.
+Miners should continue the practice of only allowing main addresses for the destinations of coinbase transactions in Carrot. This is because, unlike normal enotes, coinbase enotes do not contain an amount commitment, and thus scanning a coinbase enote commitment has no "hard target". If subaddresses can be the destinations of coinbase transactions, then the scanner *must* have their subaddress table loaded and populated to correctly scan coinbase enotes. If only main addresses are allowed, then the scanner does not need the table and can instead simply check whether <code>K<sub>s</sub><sup>0</sup> ?= K<sub>o</sub> - k<sub>g</sub><sup>o</sup> G - k<sub>t</sub><sup>o</sup> T</code>.
 
 ## Balance recovery
 
@@ -467,7 +465,7 @@ The enote scan process is a function which takes public enote information and re
 
 The following values are part of the enote, and thus public: <ins><code>input_context, D<sub>e</sub>, K<sub>o</sub>, C<sub>a</sub>, a<sub>enc</sub>, vt, anchor<sub>enc</sub>, pid<sub>enc</sub></code></ins>. By contrast, the following values are private to each scanner: <code>k<sub>v</sub>, s<sub>vb</sub>, and K<sub>s</sub></code>. For readability, we will denote public values with an <ins>underline</ins> in this section.
 
-We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal) if using the new key hierarchy.
+We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub>e</sub></code> (external), and once with <code>s<sub>sr</sub> = s<sub>vb</sub></code> (internal, new key hierarchy) or <code>s<sub>sr</sub> = k<sub>v</sub></code> (internal, legacy key hierarchy).
 
 1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins>)[:3]</code>
 1. If <code>vt' ≠ <ins>vt</ins></code>, then <code><b>ABORT</b></code>
@@ -487,7 +485,7 @@ We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
 1. If <code>C<sub>a</sub>' ≠ <ins>C<sub>a</sub></ins></code>, then <code><b>ABORT</b></code>
 1. If <code>K<sub>s</sub><sup>j</sup>'</code> is not in the *prime order* cyclic subgroup 𝔾<sub>E</sub>, then <code><b>ABORT</b></code>
-1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 35
+1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 33
 1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
 1. Set <code>pid' = <ins>pid<sub>enc</sub></ins> ⊕ m<sub>pid</sub></code>
 1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:16]</code>
@@ -496,13 +494,11 @@ We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
 1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
-1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 35
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
 1. Set `pid' = nullpid`
 1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
-1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 35
-1. Let <code>anchor<sub>sp</sub> = SecretDerive("Carrot janus anchor special" \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins> \|\| k<sub>v</sub>)[:16]</code>
-1. If <code>anchor' ≠ anchor<sub>sp</sub></code>, then <code><b>ABORT</b></code>
+1. If <code>D<sub>e</sub>' ≠ D<sub>e</sub></code>, then <code><b>ABORT</b></code>
 1. Return successfully!
 
 ### Determining spendability and computing key images
@@ -637,7 +633,7 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Ephemeral Public Key* - An elliptic curve point associated to transaction outputs in order to hide enote details through a Diffie-Hellman key exchange
 - *External Enote* - An enote which was constructed by performing an asymmetric Elliptic Curve Diffie-Hellman key exchange against an address, main or subaddress
 - *FCMP++* - A proposed cryptocurrency consensus protocol to upgrade Monero's RingCT consensus protocol
-- *Forward Secrecy* - The property of a cryptographic construction that information is hidden from an observer that can efficiently solve the Discrete Logarithm Problem 
+- *Forward Secrecy* - The property of a cryptographic construction that information is hidden from an observer that can efficiently solve the Discrete Logarithm Problem
 - *Indistinguishability* - The property of multiple cryptographic constructions that the public values posted cannot be determined to the result of any single construction
 - *Input Content* - A unique value associated to each transaction used in the Carrot address protocol derivations to mitigate burning bug attacks
 - *Integrated Address* - A main address which additionally contains a payment ID
@@ -653,7 +649,6 @@ A *very* special thanks to @tevador, who wrote up the Jamtis and Jamtis-RCT spec
 - *Rerandomizable RingCT* - An abstraction of FCMP++ defined in this document that allows the formalization of different security properties without knowledge of the underlying proving system
 - *RingCT* - A cryptocurrency consensus protocol that iterated on Cryptonote by introducing hidden amounts by way of amount commitments
 - *Self-send Enote* - An enote constructed by wallet intended to be received by the same wallet, either internal or external
-- *Special Enote* - An external self-send enote within a 2-output transaction
 - *Subaddress* - An address form introduced by Monero contributors which allows for a single wallet to generate an arbitrary number of unlinkable addresses without affecting scanning speed
 - *Transaction* - An atomic modification to the ledger containing key images, transaction outputs, and other unstructured data
 - *Transaction Output* - A distinct tuple of an elliptic curve point and amount commitment or plaintext amount which is contained in a list in a transaction
