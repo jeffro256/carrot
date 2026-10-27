@@ -367,12 +367,12 @@ The enote components are derived from the shared secrets <code>s<sub>sr</sub></c
 
 | Symbol | Name   | Derivation |
 |-----------|--------|-----------|
-|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup> \|\| enote_type)</code> |
+|<code>k<sub>a</sub></code>|amount commitment blinding factor| <code>k<sub>a</sub> = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup>)</code> |
 | <code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G [coinbase] | <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Carrot coinbase extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup>)</code> |
 | <code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T [coinbase]| <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Carrot coinbase extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a \|\| K<sub>s</sub><sup>j</sup>)</code> |
 | <code>k<sub>g</sub><sup>o</sup></code>|output pubkey extension G [non-coinbase] | <code>k<sub>g</sub><sup>o</sup> = ScalarDerive("Carrot key extension G" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
 | <code>k<sub>t</sub><sup>o</sup></code>|output pubkey extension T [non-coinbase] | <code>k<sub>t</sub><sup>o</sup> = ScalarDerive("Carrot key extension T" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| C<sub>a</sub>)</code> |
-|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:16]</code> |
+|<code>m<sub>anchor</sub></code>|encryption mask for `anchor`| <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub> \|\| input_context \|\| K<sub>o</sub>)[:16]</code> |
 |<code>m<sub>a</sub></code>|encryption mask for `a`| <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
 |<code>m<sub>pid</sub></code>|encryption mask for `pid`| <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| K<sub>o</sub>)[:8]</code> |
 |<code>anchor<sub>norm</sub></code>|janus anchor, normal| <code>anchor<sub>norm</sub> = RandBytes(16)</code> |
@@ -425,7 +425,7 @@ The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx<
 |Recipient, external    |<code>k<sub>v</sub> D<sub>e</sub></code>                            |
 |Internal               |<code>s<sub>vb</sub></code>                                         |
 
-Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context)</code>.
+Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context \|\| enote_type)</code>.
 
 ### 7.7 Janus outputs
 
@@ -449,7 +449,7 @@ Every transaction that spends funds from the wallet must produce at least one se
 
 In a 2-out transaction with two self-send enotes, one enote's `enote_type` must be `"payment"`, and the other `"change"`.
 
-In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, then <code>s<sub>sr</sub><sup>ctx</sup></code> will be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. However, note that the output pubkey extensions <code>k<sub>g</sub><sup>o</sup></code> and <code>k<sub>t</sub><sup>o</sup></code> bind to the amount commitment <code>C<sub>a</sub></code> which in turn binds to `enote_type`. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
+In 2-out transactions, the ephemeral pubkey <code>D<sub>e</sub></code> is shared between enotes. `input_context` is also shared between the two enotes. Thus, if the two destination addresses share the same private view key <code>k<sub>v</sub></code> in a 2-out transaction, or the same internal <code>s<sub>sr</sub></code>, then <code>s<sub>sr</sub><sup>ctx</sup></code>, if not for binding to `enote_type`, would be the same and the derivation paths will lead both enotes to have the same output pubkey, which is A) not allowed, B) bad for privacy, and C) would burn funds if allowed. Thus, if we want our two enotes to have unique derivations, then the `enote_type` needs to be unique.
 
 ### 7.9 Coinbase transactions
 
@@ -469,32 +469,29 @@ We perform the scan process once with <code>s<sub>sr</sub> = k<sub>v</sub> D<sub
 
 1. Let <code>vt' = SecretDerive("Carrot view tag" \|\| s<sub>sr</sub> \|\| <ins>input_context</ins> \|\| <ins>K<sub>o</sub></ins>)[:3]</code>
 1. If <code>vt' ≠ <ins>vt</ins></code>, then <code><b>ABORT</b></code>
-1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins>)</code>
+1. Set `enote_type' = "payment"`
+1. Let <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| <ins>D<sub>e</sub></ins> \|\| <ins>input_context</ins> \|\| enote_type')</code>
 1. Let <code>k<sub>g</sub><sup>o</sup>' = ... , k<sub>t</sub><sup>o</sup>' = ... </code> according to whether the enote is a coinbase enote
 1. Let <code>K<sub>s</sub><sup>j</sup>' = <ins>K<sub>o</sub></ins> - k<sub>g</sub><sup>o</sup>' G - k<sub>t</sub><sup>o</sup>' T</code>
 1. If a coinbase enote and <code>K<sub>s</sub><sup>j</sup>' ≠ K<sub>s</sub></code>, then <code><b>ABORT</b></code>
-1. Set `enote_type' = "payment"`
-1. If a coinbase enote, then let `a' = a` and jump to step 19
+1. If a coinbase enote, then let `a' = a` and jump to step 15
 1. Let <code>m<sub>a</sub> = SecretDerive("Carrot encryption mask a" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
 1. Let <code>a' = BytesToInt64(<ins>a<sub>enc</sub></ins> ⊕ m<sub>a</sub>)</code>
-1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| enote_type')</code>
+1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a' \|\| K<sub>s</sub><sup>j</sup>')</code>
 1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
-1. If <code>C<sub>a</sub>' == <ins>C<sub>a</sub></ins></code>, then jump to step 19
-1. Set `enote_type' = "change"`
-1. Let <code>k<sub>a</sub>' = ScalarDerive("Carrot commitment mask" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| a' \|\| K<sub>s</sub><sup>j</sup>' \|\| enote_type')</code>
-1. Let <code>C<sub>a</sub>' = k<sub>a</sub>' G + a' H</code>
-1. If <code>C<sub>a</sub>' ≠ <ins>C<sub>a</sub></ins></code>, then <code><b>ABORT</b></code>
+1. If <code>C<sub>a</sub>' == <ins>C<sub>a</sub></ins></code>, then jump to step 15</code>
+1. If `enote_type' == "payment"` and performing an internal scan, then set `enote_type' = "change"` and jump to step 4, else <code><b>ABORT</b></code> 
 1. If <code>K<sub>s</sub><sup>j</sup>'</code> is not in the *prime order* cyclic subgroup 𝔾<sub>E</sub>, then <code><b>ABORT</b></code>
-1. If <code>s<sub>sr</sub> == s<sub>vb</sub></code> (i.e. performing an internal scan), then jump to step 33
+1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub> \|\| input_context \|\| <ins>K<sub>o</sub></ins>)[:16]</code>
+1. Let <code>anchor' = <ins>anchor<sub>enc</sub></ins> ⊕ m<sub>anchor</sub></code>
+1. If performing an internal scan, then jump to step 30
 1. Let <code>m<sub>pid</sub> = SecretDerive("Carrot encryption mask pid" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:8]</code>
 1. Set <code>pid' = <ins>pid<sub>enc</sub></ins> ⊕ m<sub>pid</sub></code>
-1. Let <code>m<sub>anchor</sub> = SecretDerive("Carrot encryption mask anchor" \|\| s<sub>sr</sub><sup>ctx</sup> \|\| <ins>K<sub>o</sub></ins>)[:16]</code>
-1. Let <code>anchor' = <ins>anchor<sub>enc</sub></ins> ⊕ m<sub>anchor</sub></code>
 1. If <code>K<sub>s</sub><sup>j</sup>' == K<sub>s</sub></code>, then let <code>K<sub>base</sub> = G</code>, else let <code>K<sub>base</sub> = K<sub>s</sub><sup>j</sup>'</code>
 1. Let <code>K<sub>v</sub><sup>j</sup>' = k<sub>v</sub> K<sub>base</sub></code>
 1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
-1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 33
+1. If <code>D<sub>e</sub>' == D<sub>e</sub></code>, then jump to step 30
 1. Set `pid' = nullpid`
 1. Let <code>d<sub>e</sub>' = ScalarDerive("Carrot sending key normal" \|\| anchor' \|\| <ins>input_context</ins> \|\| K<sub>s</sub><sup>j</sup>' \|\| K<sub>v</sub><sup>j</sup>' \|\| pid')</code>
 1. Let <code>D<sub>e</sub>' = d<sub>e</sub>' ConvertPointE(K<sub>base</sub>)</code>
