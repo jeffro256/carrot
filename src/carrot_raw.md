@@ -419,11 +419,11 @@ The shared secrets <code>s<sub>sr</sub></code> and <code>s<sub>sr</sub><sup>ctx<
 
 <code>s<sub>sr</sub></code> is derived the following ways:
 
-|                       | Derivation                                                         |
-|---------------------- | -------------------------------------------------------------------|
-|Sender, external       |<code>d<sub>e</sub> ConvertPointE(K<sub>v</sub><sup>j</sup></code>) |
-|Recipient, external    |<code>k<sub>v</sub> D<sub>e</sub></code>                            |
-|Internal               |<code>s<sub>vb</sub></code>                                         |
+|                               | Derivation                                                          |
+|------------------------------ | --------------------------------------------------------------------|
+|Normal                         | <code>d<sub>e</sub> ConvertPointE(K<sub>v</sub><sup>j</sup></code>) |
+|Internal, new key hierarchy    | <code>s<sub>vb</sub></code>                                         |
+|Internal, legacy key hierarchy | <code>k<sub>v</sub></code>                                          |
 
 Then, <code>s<sub>sr</sub><sup>ctx</sup></code> is derived as <code>s<sub>sr</sub><sup>ctx</sup> = SecretDerive("Carrot sender-receiver secret" \|\| s<sub>sr</sub> \|\| D<sub>e</sub> \|\| input_context \|\| enote_type)</code>.
 
@@ -581,7 +581,7 @@ A SDLP can learn no receiver or amount information about a transaction output, n
 
 #### Internal Forward Secrecy
 
-Even with knowledge of <code>s<sub>ga</sub></code>, <code>k<sub>ps</sub></code>, <code>k<sub>gi</sub></code>, <code>k<sub>v</sub></code>, a SDLP without explicit knowledge of <code>s<sub>vb</sub></code> will not be able to discern where internal enotes are received, where/if they are spent, nor the amounts with any better probability than random guessing.
+Assume that a SDLP has knowledge of <code>s<sub>ga</sub></code>, <code>k<sub>ps</sub></code>, <code>k<sub>gi</sub></code>, <code>k<sub>v</sub></code>, and other public values. Without explicit knowledge of <code>s<sub>vb</sub></code>, the SDLP will not be able to discern where internal enotes with <code>s<sub>sr</sub> = s<sub>vb</sub></code> are received, where/if they are spent, nor the amounts with any better probability than random guessing.
 
 ### Indistinguishability
 
